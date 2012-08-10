@@ -3,10 +3,10 @@ require 'rake/clean'
 BIN_NAME = 'iron'
 
 directory BIN_DIR = 'bin'
-directory OBJ_DIR = 'obj'
-
-CLEAN.include OBJ_DIR
 CLOBBER.include BIN_DIR
+
+directory OBJ_DIR = 'obj'
+CLEAN.include OBJ_DIR
 
 bin = File.join BIN_DIR,BIN_NAME
 
