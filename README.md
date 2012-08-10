@@ -14,3 +14,13 @@ The Iron language is a toy language geared towards systems development.
 - C ABI interop
 - Algebraic datatypes
 
+## Requirements ##
+The Iron build system is written in Rakefiles and Ruby.
+
+## Building ##
+
+To start, execute:
+    rake -T
+
+Various options will be enumerated there.
+
