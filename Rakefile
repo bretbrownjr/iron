@@ -9,7 +9,7 @@ CLOBBER.include BIN_DIR
 
 directory OBJ_DIR = 'obj'
 CLEAN.include OBJ_DIR
-OBJ_FLAGS=['c','-std=c++11','Wall','Werror','Wextra','pedantic','O3']
+OBJ_FLAGS=['c','-std=c++11','Wall','Werror','Wextra','pedantic','O3','I./include']
 
 bin = File.join BIN_DIR,BIN_NAME
 objs = []
