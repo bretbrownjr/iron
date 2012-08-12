@@ -4,6 +4,9 @@
 #include <string>
 #include <vector>
 
+// iron includes
+#include "iron/file.h"
+
 namespace iron
 {
 template<typename Ttype>
@@ -13,13 +16,6 @@ using String = std::string;
 
 template<typename Ttype>
 using Vector = std::vector<Ttype>;
-
-/// @brief Metadata for an Iron source file
-struct File
-{
-  ///@brief The path to the file
-  String path;
-};
 
 /// @brief The position of a substring in a file
 struct Pos
@@ -53,9 +49,15 @@ LexCode lexCode;
 /// @brief Breaks a file up into Tokens
 Vector<Token> lex(Shared<File> file)
 {
-  (void) file;
+  Vector<Token> tokens;
   lexCode = LexCode::bad_file;
-  return {};
+
+  if (!file->isEmpty() && file->isValid())
+  {
+    lexCode = LexCode::ok;
+  }
+
+  return std::move(tokens);
 }
 
 } // namespace iron
