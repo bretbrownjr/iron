@@ -54,6 +54,8 @@ Vector<Token> lex(Shared<File> file)
 
   if (!file->isEmpty() && file->isValid())
   {
+    const auto bytes = file->all();
+    fprintf(stdout, "'%s' has %lu bytes.\n", file->path().c_str(), bytes.size());
     lexCode = LexCode::ok;
   }
 

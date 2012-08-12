@@ -3,34 +3,54 @@
 /// standard includes
 #include <string>
 
+/// iron includes
+#include "iron/range.h"
+
 namespace iron
 {
+using ubyte_t = unsigned char;
+static_assert(sizeof(ubyte_t) == 1, "ubyte_t must be 1 byte long.");
 using String = std::string;
 
 class File
 {
 private:
+  const ubyte_t* _buffer;
   FILE* _handle;
   const String _path;
-  size_t _size;
+  const size_t _size;
 
 public:
   File() = delete;
   File(const File&) = delete;
-  File(File&& moveThis) : File(moveThis._path)
+  File(File&& moveThis) : _path(moveThis._path), _size(moveThis._size)
   {
     _handle = moveThis._handle;
     moveThis._handle = nullptr;
-    _size = moveThis._size;
+    _buffer = moveThis._buffer;
+    moveThis._buffer = nullptr;
   }
-  File(String path) : _handle(nullptr), _path(path)
+  File(String path) : _handle(fopen(path.c_str(), "r")), _path(path), _size(initSize())
   {
-    _handle = fopen(path.c_str(), "r");
-    _size = initSize();
+    _buffer = reinterpret_cast<const ubyte_t*>(malloc(_size));;
+    // TODO: Handle cstdio error codes
+    fread(const_cast<ubyte_t*>(_buffer), sizeof(ubyte_t), _size, _handle);
   }
   ~File()
   {
     close();
+    if (_buffer != nullptr)
+    {
+      free(const_cast<ubyte_t*>(_buffer));
+      _buffer = nullptr;
+    }
+  }
+
+  PtrRange<const ubyte_t> all() const
+  {
+    return isEmpty() ?
+        PtrRange<const ubyte_t>{} :
+        PtrRange<const ubyte_t>{_buffer, _buffer + _size - 1};
   }
 
   void close()
