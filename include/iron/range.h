@@ -23,6 +23,7 @@ public :
   PtrRange(PtrRange&& moveThis) : _begin(moveThis._begin), _end(moveThis._end) {}
   ~PtrRange() = default;
 
+  Ttype& front() { return *_begin; }
   constexpr bool isEmpty() { return _begin < _end; }
   constexpr size_t size() { return _end - _begin + 1; }
 };
