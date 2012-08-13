@@ -119,23 +119,31 @@ LexCode lexCharLiteral(Vector<Token>& tokens, PtrRange<const byte_t>& bytes, Pos
   return LexCode::no_match;
 }
 
-LexCode lexPunctuation(Vector<Token>& tokens, PtrRange<const byte_t>& bytes, Pos& pos)
+LexCode lexSingleChar(Vector<Token>& tokens, PtrRange<const byte_t>& bytes, Pos& pos,
+  char c, Token::Type type)
 {
-  if (bytes.front() == '{')
+  if (bytes.front() == c)
   {
-    fprintf(stdout, "Lexed a '{' at %lu:%lu\n", pos.row, pos.col);
-    tokens.emplace_back(Token{Token::Type::left_brace, pos, bytes.first(1)});
+    fprintf(stdout, "Lexed a '%c' at %lu:%lu\n", c, pos.row, pos.col);
+    tokens.emplace_back(Token{type, pos, bytes.first(1)});
     ++pos.col;
     bytes.pop();
     return LexCode::ok;
   }
-  else if (bytes.front() == '}')
+  return LexCode::no_match;
+}
+
+LexCode lexPunctuation(Vector<Token>& tokens, PtrRange<const byte_t>& bytes, Pos& pos)
+{
+  auto code = lexSingleChar(tokens, bytes, pos, '{', Token::Type::left_brace);
+  if (code == LexCode::ok || code != LexCode::no_match)
   {
-    fprintf(stdout, "Lexed a '}' at %lu:%lu\n", pos.row, pos.col);
-    tokens.emplace_back(Token{Token::Type::right_brace, pos, bytes.first(1)});
-    ++pos.col;
-    bytes.pop();
-    return LexCode::ok;
+    return code;
+  }
+  code = lexSingleChar(tokens, bytes, pos, '}', Token::Type::right_brace);
+  if (code == LexCode::ok || code != LexCode::no_match)
+  {
+    return code;
   }
 
   return LexCode::no_match;
