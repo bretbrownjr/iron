@@ -31,7 +31,7 @@ int main(int argc, char* argv[])
         status = -1;
         break;
       }
-      case LexCode::no_tokens:
+      case LexCode::no_match:
       {
         fprintf(stdout, "Warning: No tokens parsed from '%s'\n", argv[1]);
         status = 0;
