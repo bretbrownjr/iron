@@ -59,7 +59,17 @@ public:
   }
   bool isEmpty() const { return _size == 0; }
   bool isOpen() const { return _handle != nullptr; }
-  bool isValid() const { return true; }
+  bool isValid() const
+  {
+    for (size_t i=0; i<_size; ++i)
+    {
+      // For now, only handle ASCII
+      if (_buffer[i] >= 0x80) { return false; }
+    }
+
+    return true;
+  }
+
   String path() const { return _path; }
   bool size() const { return _size; }
 
