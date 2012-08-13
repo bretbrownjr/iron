@@ -49,8 +49,7 @@ enum class LexCode
 {
   ok,
   bad_file,
-  no_match,
-  lex_error
+  no_match
 };
 
 /// @brief The status code for the last run of @ref lex
@@ -139,7 +138,7 @@ LexCode lexToken(Vector<Token>& tokens, PtrRange<const ubyte_t>& bytes, Pos& pos
     return lexPunctuation(tokens, bytes, pos);
   }
 
-  return LexCode::lex_error;
+  return LexCode::no_match;
 }
 
 /// @brief Breaks a file up into Tokens
@@ -153,14 +152,20 @@ Vector<Token> lex(Shared<File> file)
   }
 
   Vector<Token> tokens;
+  fprintf(stdout, "Lexing '%s'\n", file->path().c_str());
   auto bytes = file->all();
+  fprintf(stdout, "Read %lu bytes from '%s'\n", bytes.size(), file->path().c_str());
   Pos pos = {0, 0};
   while (!bytes.isEmpty())
   {
+    fprintf(stdout, "Attempting to lex a token at %s:%lu,%lu\n",
+        file->path().c_str(), pos.row, pos.col);
     const auto code = lexToken(tokens, bytes, pos);
     if (code != LexCode::ok)
     {
-      // TODO: Report error
+      lexCode = code;
+      fprintf(stderr, "Error: Failed to lex a token at %s:%lu,%lu\n",
+        file->path().c_str(), pos.row, pos.col);
       return {};
     }
   }
