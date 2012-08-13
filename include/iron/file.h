@@ -5,17 +5,16 @@
 
 /// iron includes
 #include "iron/range.h"
+#include "iron/types.h"
 
 namespace iron
 {
-using ubyte_t = unsigned char;
-static_assert(sizeof(ubyte_t) == 1, "ubyte_t must be 1 byte long.");
 using String = std::string;
 
 class File
 {
 private:
-  const ubyte_t* _buffer;
+  const byte_t* _buffer;
   FILE* _handle;
   const String _path;
   const size_t _size;
@@ -32,25 +31,25 @@ public:
   }
   File(String path) : _handle(fopen(path.c_str(), "r")), _path(path), _size(initSize())
   {
-    _buffer = reinterpret_cast<const ubyte_t*>(malloc(_size));;
+    _buffer = reinterpret_cast<const byte_t*>(malloc(_size));;
     // TODO: Handle cstdio error codes
-    fread(const_cast<ubyte_t*>(_buffer), sizeof(ubyte_t), _size, _handle);
+    fread(const_cast<byte_t*>(_buffer), sizeof(byte_t), _size, _handle);
   }
   ~File()
   {
     close();
     if (_buffer != nullptr)
     {
-      free(const_cast<ubyte_t*>(_buffer));
+      free(const_cast<byte_t*>(_buffer));
       _buffer = nullptr;
     }
   }
 
-  PtrRange<const ubyte_t> all() const
+  PtrRange<const byte_t> all() const
   {
     return isEmpty() ?
-        PtrRange<const ubyte_t>{} :
-        PtrRange<const ubyte_t>{_buffer, _buffer + _size - 1};
+        PtrRange<const byte_t>{} :
+        PtrRange<const byte_t>{_buffer, _buffer + _size - 1};
   }
 
   void close()
@@ -64,7 +63,7 @@ public:
     for (size_t i=0; i<_size; ++i)
     {
       // For now, only handle ASCII
-      if (_buffer[i] >= 0x80) { return false; }
+      if (_buffer[i] <= 0) { return false; }
     }
 
     return true;
