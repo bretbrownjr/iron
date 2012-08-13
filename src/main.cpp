@@ -40,7 +40,8 @@ int main(int argc, char* argv[])
       default:
       {
         fprintf(stderr, "Internal Compiler Error: "
-          "Bad lex status code %d detected at %s:%d\n", iron::lexCode,__FILE__,__LINE__);
+          "Invalid lex status code %d detected at %s:%d\n", iron::lexCode,
+          __FILE__, __LINE__);
         status = -1;
         break;
       }
