@@ -3,11 +3,20 @@
 
 // iron includes
 #include "iron/lex.h"
+#include "iron/parse.h"
 
-auto tokenize(std::shared_ptr<iron::File> file) -> decltype(iron::lex(file))
+using File = iron::File;
+using LexCode = iron::LexCode;
+template<typename Ttype>
+using Shared = std::shared_ptr<Ttype>;
+using Token = iron::Token;
+template<typename Ttype>
+using Vector = std::vector<Ttype>;
+using TokenIter = Vector<Token>::iterator;
+using AstNode = Shared<iron::ast::Node>;
+
+auto tokenize(Shared<File> file) -> decltype(iron::lex(file))
 {
-  using LexCode = iron::LexCode;
-
   auto tokens = iron::lex(file);
   if (tokens.empty())
   {
@@ -40,6 +49,12 @@ auto tokenize(std::shared_ptr<iron::File> file) -> decltype(iron::lex(file))
   return std::move(tokens);
 }
 
+Shared<AstNode> makeAst(TokenIter begin, TokenIter end)
+{
+  (void) begin; (void) end;
+  return {};
+}
+
 int main(int argc, char* argv[])
 {
   using File = iron::File;
@@ -58,6 +73,9 @@ int main(int argc, char* argv[])
   auto file = std::make_shared<File>(File{argv[1]});
   auto tokens = tokenize(file);
   if (tokens.empty()) { return -1; }
+
+  auto ast = makeAst(tokens.begin(), tokens.end());
+  if (!ast) { return -1; }
 
   iron::println(stdout, "Thanks for using Iron!");
   return status;
