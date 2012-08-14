@@ -49,7 +49,7 @@ auto tokenize(Shared<File> file) -> decltype(iron::lex(file))
   return std::move(tokens);
 }
 
-Shared<AstNode> makeAst(TokenIter begin, TokenIter end)
+Shared<AstNode> makeAst(Shared<File> file, TokenIter begin, TokenIter end)
 {
   (void) begin; (void) end;
   return {};
@@ -74,7 +74,7 @@ int main(int argc, char* argv[])
   auto tokens = tokenize(file);
   if (tokens.empty()) { return -1; }
 
-  auto ast = makeAst(tokens.begin(), tokens.end());
+  auto ast = makeAst(file, tokens.begin(), tokens.end());
   if (!ast) { return -1; }
 
   iron::println(stdout, "Thanks for using Iron!");
