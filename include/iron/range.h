@@ -26,6 +26,9 @@ public :
   PtrRange(PtrRange&& moveThis) : _begin(moveThis._begin), _end(moveThis._end) {}
   ~PtrRange() = default;
 
+  Ttype& operator[](size_t index) { return at(index); }
+  const Ttype& operator[](size_t index) const { return at(index); }
+
   constexpr Ttype& at(size_t size) { return *(_begin+size); }
   constexpr PtrRange<Ttype> first(size_t size) { return {_begin, _begin + size - 1}; }
   Ttype& front() { return *_begin; }
