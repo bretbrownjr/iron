@@ -30,9 +30,9 @@ struct Pos
   size_t row;
 };
 
-int info(Pos pos)
+int print(FILE* file, Pos pos)
 {
-  return info(pos.row, ',', pos.col);
+  return print(file, pos.row, ',', pos.col);
 }
 
 /// @brief A syntactic unit of the Iron language
@@ -387,9 +387,8 @@ LexCode lexToken(Vector<Token>& tokens, PtrRange<const byte_t>& bytes, Pos& pos)
       return lexIdentifierCode;
     }
 
-    fprintf(stderr, "Error: Token at %lu:%lu starts with an alphabet "
-      "character, so it should be a keyword or an identifier.\n",
-      pos.row, pos.col);  
+    errorln("Token at ", pos, " starts with an alphabet character, so it "
+      "should be a keyword or an identifier.");
   }
   else if (isdigit(c))
   {
@@ -433,8 +432,7 @@ Vector<Token> lex(Shared<File> file)
     if (code != LexCode::ok)
     {
       lexCode = code;
-      fprintf(stderr, "Error: Failed to lex a token at %s:%lu,%lu\n",
-        file->path().c_str(), pos.row, pos.col);
+      errorln("Failed to lex a token at ", file->path(), ':', pos);
       return {};
     }
   }

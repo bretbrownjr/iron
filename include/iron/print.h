@@ -6,56 +6,56 @@
 namespace iron
 {
 
-int info() { return 0; }
+int print(FILE* file) { (void) file; return 0; }
 
-int info(Ascii str)
+int print(FILE* file, Ascii str)
 {
   for (size_t i=0; i<str.size(); ++i)
   {
-    fputc(str[i], stdout);
+    fputc(str[i], file);
   }
   return 0;
 }
 
-int info(const char* c_str)
+int print(FILE* file, const char* c_str)
 {
-  if (0 < fprintf(stdout, "%s", c_str))
+  if (0 < fprintf(file, "%s", c_str))
   {
     return errno;
   }
   return 0;
 }
 
-int info(std::string&& str)
+int print(FILE* file, std::string&& str)
 {
-  if (0 < fprintf(stdout, "%s", str.c_str()))
+  if (0 < fprintf(file, "%s", str.c_str()))
   {
     return errno;
   }
   return 0;
 }
 
-int info(const std::string& str)
+int print(FILE* file, const std::string& str)
 {
-  if (0 < fprintf(stdout, "%s", str.c_str()))
+  if (0 < fprintf(file, "%s", str.c_str()))
   {
     return errno;
   }
   return 0;
 }
 
-int info(char c)
+int print(FILE* file, char c)
 {
-  if (0 < fprintf(stdout, "%c", c))
+  if (0 < fprintf(file, "%c", c))
   {
     return errno;
   }
   return 0;
 }
 
-int info(size_t number)
+int print(FILE* file, size_t number)
 {
-  if (0 < fprintf(stdout, "%lu", number))
+  if (0 < fprintf(file, "%lu", number))
   {
     return errno;
   }
@@ -63,20 +63,32 @@ int info(size_t number)
 }
 
 template<typename Ttype, typename... Ttypes>
-int info(Ttype&& firstArg, Ttypes&&... otherArgs)
+int print(FILE* file, Ttype&& firstArg, Ttypes&&... otherArgs)
 {
-  auto code = info(std::forward<Ttype>(firstArg));
+  auto code = print(file, std::forward<Ttype>(firstArg));
   if (code == 0)
   {
-    code = info(std::forward<Ttypes>(otherArgs)...);
+    code = print(file, std::forward<Ttypes>(otherArgs)...);
   }
   return code;
 }
 
 template<typename... Ttypes>
+int println(FILE* file, Ttypes&&... args)
+{
+  return print(file, std::forward<Ttypes>(args)..., "\n");
+}
+
+template<typename... Ttypes>
+int errorln(Ttypes&&... args)
+{
+  return println(stderr, "Error: ", std::forward<Ttypes>(args)...);
+}
+
+template<typename... Ttypes>
 int infoln(Ttypes&&... args)
 {
-  return info(std::forward<Ttypes>(args)..., "\n");
+  return println(stdout, std::forward<Ttypes>(args)...);
 }
 
 } // namespace iron
