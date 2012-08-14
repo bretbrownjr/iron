@@ -35,10 +35,17 @@ struct Token
   enum class Type
   {
     bad,
+    comma,
     keyword_fn,
+    keyword_ret,
     identifier,
     left_brace,
-    right_brace
+    left_bracket,
+    left_paren,
+    period,
+    right_brace,
+    right_bracket,
+    right_paren
   };
 
   /// @brief The type of token
@@ -65,17 +72,37 @@ enum class LexCode
 /// @todo TODO: Make this variable thread-local
 LexCode lexCode;
 
-LexCode lexKeyword(Vector<Token>& tokens, PtrRange<const byte_t>& bytes, Pos& pos)
+LexCode lexExact(Vector<Token>& tokens, PtrRange<const byte_t>& bytes, Pos& pos,
+    Token::Type type, Ascii str)
 {
-  constexpr Ascii KEYWORD_FN = "fn"_ascii;
-  if (bytes.startsWith(KEYWORD_FN))
+  if (bytes.startsWith(str))
   {
-    fprintf(stdout, "Lexed keyword 'fn' at %lu:%lu\n", pos.row, pos.col);
-    constexpr auto size = KEYWORD_FN.size();
-    tokens.emplace_back(Token{Token::Type::keyword_fn, pos, bytes.first(size)});
+    fprintf(stdout, "Lexed '");
+    for (size_t i=0; i<str.size(); ++i)
+    {
+      fputc(str.at(i), stdout);
+    }
+    fprintf(stdout, "' at %lu:%lu\n", pos.row, pos.col);
+    const auto size = str.size();
+    tokens.emplace_back(Token{type, pos, bytes.first(size)});
     pos.col += size;
     bytes.pop(size);
     return LexCode::ok;
+  }
+  return LexCode::no_match;
+}
+
+LexCode lexKeyword(Vector<Token>& tokens, PtrRange<const byte_t>& bytes, Pos& pos)
+{
+  auto code = lexExact(tokens, bytes, pos, Token::Type::keyword_fn, "fn"_ascii);
+  if (code == LexCode::ok || code != LexCode::no_match)
+  {
+    return code;
+  }
+  code = lexExact(tokens, bytes, pos, Token::Type::keyword_ret, "ret"_ascii);
+  if (code == LexCode::ok || code != LexCode::no_match)
+  {
+    return code;
   }
   return LexCode::no_match;
 }
@@ -92,9 +119,15 @@ LexCode lexIdentifier(Vector<Token>& tokens, PtrRange<const byte_t>& bytes, Pos&
   }
   if (size > 1)
   {
-    fprintf(stdout, "Lexed %lu character symbol at %lu:%lu\n", size, pos.row, pos.col);
-    tokens.emplace_back(Token{Token::Type::identifier, pos, bytes.first(size)});
+    auto substr = bytes.first(size);
     bytes.pop(size);
+    fprintf(stdout, "Lexed '");
+    for (size_t i=0; i<substr.size(); ++i)
+    {
+      fputc(substr.at(i), stdout);
+    }
+    fprintf(stdout, "' as a symbol at %lu:%lu\n", pos.row, pos.col);
+    tokens.emplace_back(Token{Token::Type::identifier, pos, substr});
     pos.col += size;
     return LexCode::ok;
   }
@@ -141,6 +174,36 @@ LexCode lexPunctuation(Vector<Token>& tokens, PtrRange<const byte_t>& bytes, Pos
     return code;
   }
   code = lexSingleChar(tokens, bytes, pos, '}', Token::Type::right_brace);
+  if (code == LexCode::ok || code != LexCode::no_match)
+  {
+    return code;
+  }
+  code = lexSingleChar(tokens, bytes, pos, '(', Token::Type::left_paren);
+  if (code == LexCode::ok || code != LexCode::no_match)
+  {
+    return code;
+  }
+  code = lexSingleChar(tokens, bytes, pos, ')', Token::Type::right_paren);
+  if (code == LexCode::ok || code != LexCode::no_match)
+  {
+    return code;
+  }
+  code = lexSingleChar(tokens, bytes, pos, '[', Token::Type::left_bracket);
+  if (code == LexCode::ok || code != LexCode::no_match)
+  {
+    return code;
+  }
+  code = lexSingleChar(tokens, bytes, pos, ']', Token::Type::right_bracket);
+  if (code == LexCode::ok || code != LexCode::no_match)
+  {
+    return code;
+  }
+  code = lexSingleChar(tokens, bytes, pos, ',', Token::Type::comma);
+  if (code == LexCode::ok || code != LexCode::no_match)
+  {
+    return code;
+  }
+  code = lexSingleChar(tokens, bytes, pos, '.', Token::Type::period);
   if (code == LexCode::ok || code != LexCode::no_match)
   {
     return code;
