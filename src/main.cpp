@@ -16,7 +16,7 @@ int main(int argc, char* argv[])
 
   if (argc < 2)
   {
-    fprintf(stderr, "Expected a file name as the first argument to iron.\n");
+    iron::errorln("Expected a file name as the first argument to iron.");
     return -1;
   }
 
@@ -33,27 +33,28 @@ int main(int argc, char* argv[])
       }
       case LexCode::bad_file:
       {
-        fprintf(stderr, "'%s' is not a valid Iron source file.\n", argv[1]);
+        iron::errorln("Expected a file name as the first argument to iron.");
+        iron::errorln('\'', argv[1], "' is not a valid Iron source file.");
         status = -1;
         break;
       }
       case LexCode::no_match:
       {
-        fprintf(stdout, "Warning: No tokens parsed from '%s'\n", argv[1]);
+        iron::errorln("Warning: No tokens parsed from '", argv[1], '\'');
         status = 0;
         break;
       }
       default:
       {
-        fprintf(stderr, "Internal Compiler Error: "
-          "Invalid lex status code %d detected at %s:%d\n", iron::lexCode,
-          __FILE__, __LINE__);
+        iron::errorln("Internal Compiler Error: "
+          "Invalid lex status code (", iron::lexCode, ") detected at ",
+          __FILE__, ':', __LINE__);
         status = -1;
         break;
       }
     }
   }
-  fprintf(stdout,"Thanks for using Iron!\n");
+  iron::println(stdout, "Thanks for using Iron!");
   return status;
 }
 
