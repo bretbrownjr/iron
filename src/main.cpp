@@ -12,6 +12,7 @@ int main(int argc, char* argv[])
   int status = -1;
 
   if (getenv("INFO") != nullptr) { iron::infoOn = true; }
+  if (getenv("SILENT") != nullptr) { iron::errorOn = false; }
 
   if (argc < 2)
   {
