@@ -9,6 +9,7 @@
 
 // iron includes
 #include "iron/file.h"
+#include "iron/report.h"
 
 namespace iron
 {
@@ -28,6 +29,11 @@ struct Pos
   /// @brief row (line) number
   size_t row;
 };
+
+int info(Pos pos)
+{
+  return info(pos.row, ',', pos.col);
+}
 
 /// @brief A syntactic unit of the Iron language
 struct Token
@@ -99,12 +105,7 @@ LexCode lexExact(Vector<Token>& tokens, PtrRange<const byte_t>& bytes, Pos& pos,
 {
   if (bytes.startsWith(str))
   {
-    fprintf(stdout, "Lexed '");
-    for (size_t i=0; i<str.size(); ++i)
-    {
-      fputc(str.at(i), stdout);
-    }
-    fprintf(stdout, "' at %lu:%lu\n", pos.row, pos.col);
+    infoln("Lexed '", str, "' at ", pos);
     const auto size = str.size();
     tokens.emplace_back(Token{type, pos, bytes.first(size)});
     pos.col += size;
@@ -143,12 +144,7 @@ LexCode lexIdentifier(Vector<Token>& tokens, PtrRange<const byte_t>& bytes, Pos&
   {
     auto substr = bytes.first(size);
     bytes.pop(size);
-    fprintf(stdout, "Lexed '");
-    for (size_t i=0; i<substr.size(); ++i)
-    {
-      fputc(substr.at(i), stdout);
-    }
-    fprintf(stdout, "' as a symbol at %lu:%lu\n", pos.row, pos.col);
+    infoln("Lexed '", substr, "' as a symbol at ", pos);
     tokens.emplace_back(Token{Token::Type::identifier, pos, substr});
     pos.col += size;
     return LexCode::ok;
@@ -162,7 +158,6 @@ LexCode lexNumberLiteral(Vector<Token>& tokens, PtrRange<const byte_t>& bytes, P
   auto c = bytes.at(size);
   while (size < bytes.size() && isdigit(c))
   {
-fprintf(stdout, "%s:%d\n", __FILE__, __LINE__);
     ++size;
     c = bytes.at(size);
   }
@@ -170,12 +165,7 @@ fprintf(stdout, "%s:%d\n", __FILE__, __LINE__);
   {
     auto substr = bytes.first(size);
     bytes.pop(size);
-    fprintf(stdout, "Lexed '");
-    for (size_t i=0; i<substr.size(); ++i)
-    {
-      fputc(substr.at(i), stdout);
-    }
-    fprintf(stdout, "' as a number at %lu:%lu\n", pos.row, pos.col);
+    infoln("Lexed '", substr, "' as a number at ", pos);
     tokens.emplace_back(Token{Token::Type::number, pos, substr});
     pos.col += size;
     return LexCode::ok;
@@ -202,7 +192,7 @@ LexCode lexSingleChar(Vector<Token>& tokens, PtrRange<const byte_t>& bytes, Pos&
 {
   if (bytes.front() == c)
   {
-    fprintf(stdout, "Lexed a '%c' at %lu:%lu\n", c, pos.row, pos.col);
+    infoln("Lexed a '", c, "' at ", pos);
     tokens.emplace_back(Token{type, pos, bytes.first(1)});
     ++pos.col;
     bytes.pop();
@@ -368,7 +358,7 @@ LexCode lexToken(Vector<Token>& tokens, PtrRange<const byte_t>& bytes, Pos& pos)
   const auto& c = bytes.front();
   if (c == '\n')
   {
-    fprintf(stdout, "Lexed a newline at %lu:%lu\n", pos.row, pos.col);
+    infoln("Lexed a newline at ", pos);
     ++pos.row;
     pos.col = 1;
     bytes.pop();
@@ -376,7 +366,7 @@ LexCode lexToken(Vector<Token>& tokens, PtrRange<const byte_t>& bytes, Pos& pos)
   }
   else if (c == ' ' || c == '\t')
   {
-    fprintf(stdout, "Lexed whitespace at %lu:%lu\n", pos.row, pos.col);
+    infoln("Lexed whitespace at ", pos);
     ++pos.col;
     bytes.pop();
     return LexCode::ok;
@@ -432,14 +422,13 @@ Vector<Token> lex(Shared<File> file)
   }
 
   Vector<Token> tokens;
-  fprintf(stdout, "Lexing '%s'\n", file->path().c_str());
+  infoln("Lexing '", file->path());
   auto bytes = file->all();
-  fprintf(stdout, "Read %lu bytes from '%s'\n", bytes.size(), file->path().c_str());
+  infoln("Read ", bytes.size(), " bytes from '", file->path(), "'");
   Pos pos = {1, 1};
   while (!bytes.isEmpty())
   {
-    fprintf(stdout, "Attempting to lex a token at %s:%lu,%lu\n",
-        file->path().c_str(), pos.row, pos.col);
+    infoln("Attempting to lex a token at ", file->path(), ':', pos);
     const auto code = lexToken(tokens, bytes, pos);
     if (code != LexCode::ok)
     {
