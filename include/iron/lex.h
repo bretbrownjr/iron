@@ -35,17 +35,39 @@ struct Token
   enum class Type
   {
     bad,
+    ampersind,
+    asterisk,
+    at,
+    back_slash,
+    back_tick,
+    bang,
+    caret,
+    colon,
     comma,
+    dollar,
+    equals,
+    fwd_slash,
+    greater_than,
     keyword_fn,
     keyword_ret,
     identifier,
     left_brace,
     left_bracket,
     left_paren,
+    less_than,
+    minus,
+    number,
+    octothorpe,
+    percent,
     period,
+    plus,
+    pipe,
+    question,
     right_brace,
     right_bracket,
-    right_paren
+    right_paren,
+    semicolon,
+    tilde
   };
 
   /// @brief The type of token
@@ -136,6 +158,29 @@ LexCode lexIdentifier(Vector<Token>& tokens, PtrRange<const byte_t>& bytes, Pos&
 
 LexCode lexNumberLiteral(Vector<Token>& tokens, PtrRange<const byte_t>& bytes, Pos& pos)
 {
+  size_t size = 0;
+  auto c = bytes.at(size);
+  while (size < bytes.size() && isdigit(c))
+  {
+fprintf(stdout, "%s:%d\n", __FILE__, __LINE__);
+    ++size;
+    c = bytes.at(size);
+  }
+  if (size > 0)
+  {
+    auto substr = bytes.first(size);
+    bytes.pop(size);
+    fprintf(stdout, "Lexed '");
+    for (size_t i=0; i<substr.size(); ++i)
+    {
+      fputc(substr.at(i), stdout);
+    }
+    fprintf(stdout, "' as a number at %lu:%lu\n", pos.row, pos.col);
+    tokens.emplace_back(Token{Token::Type::number, pos, substr});
+    pos.col += size;
+    return LexCode::ok;
+  }
+  return LexCode::no_match;
   (void) tokens; (void) bytes; (void) pos;
   return LexCode::no_match;
 }
@@ -204,6 +249,111 @@ LexCode lexPunctuation(Vector<Token>& tokens, PtrRange<const byte_t>& bytes, Pos
     return code;
   }
   code = lexSingleChar(tokens, bytes, pos, '.', Token::Type::period);
+  if (code == LexCode::ok || code != LexCode::no_match)
+  {
+    return code;
+  }
+  code = lexSingleChar(tokens, bytes, pos, ':', Token::Type::colon);
+  if (code == LexCode::ok || code != LexCode::no_match)
+  {
+    return code;
+  }
+  code = lexSingleChar(tokens, bytes, pos, ';', Token::Type::semicolon);
+  if (code == LexCode::ok || code != LexCode::no_match)
+  {
+    return code;
+  }
+  code = lexSingleChar(tokens, bytes, pos, '-', Token::Type::minus);
+  if (code == LexCode::ok || code != LexCode::no_match)
+  {
+    return code;
+  }
+  code = lexSingleChar(tokens, bytes, pos, '+', Token::Type::plus);
+  if (code == LexCode::ok || code != LexCode::no_match)
+  {
+    return code;
+  }
+  code = lexSingleChar(tokens, bytes, pos, '*', Token::Type::asterisk);
+  if (code == LexCode::ok || code != LexCode::no_match)
+  {
+    return code;
+  }
+  code = lexSingleChar(tokens, bytes, pos, '!', Token::Type::bang);
+  if (code == LexCode::ok || code != LexCode::no_match)
+  {
+    return code;
+  }
+  code = lexSingleChar(tokens, bytes, pos, '=', Token::Type::equals);
+  if (code == LexCode::ok || code != LexCode::no_match)
+  {
+    return code;
+  }
+  code = lexSingleChar(tokens, bytes, pos, '<', Token::Type::less_than);
+  if (code == LexCode::ok || code != LexCode::no_match)
+  {
+    return code;
+  }
+  code = lexSingleChar(tokens, bytes, pos, '>', Token::Type::greater_than);
+  if (code == LexCode::ok || code != LexCode::no_match)
+  {
+    return code;
+  }
+  code = lexSingleChar(tokens, bytes, pos, '/', Token::Type::fwd_slash);
+  if (code == LexCode::ok || code != LexCode::no_match)
+  {
+    return code;
+  }
+  code = lexSingleChar(tokens, bytes, pos, '\\', Token::Type::back_slash);
+  if (code == LexCode::ok || code != LexCode::no_match)
+  {
+    return code;
+  }
+  code = lexSingleChar(tokens, bytes, pos, '|', Token::Type::pipe);
+  if (code == LexCode::ok || code != LexCode::no_match)
+  {
+    return code;
+  }
+  code = lexSingleChar(tokens, bytes, pos, '?', Token::Type::question);
+  if (code == LexCode::ok || code != LexCode::no_match)
+  {
+    return code;
+  }
+  code = lexSingleChar(tokens, bytes, pos, '@', Token::Type::at);
+  if (code == LexCode::ok || code != LexCode::no_match)
+  {
+    return code;
+  }
+  code = lexSingleChar(tokens, bytes, pos, '$', Token::Type::dollar);
+  if (code == LexCode::ok || code != LexCode::no_match)
+  {
+    return code;
+  }
+  code = lexSingleChar(tokens, bytes, pos, '%', Token::Type::percent);
+  if (code == LexCode::ok || code != LexCode::no_match)
+  {
+    return code;
+  }
+  code = lexSingleChar(tokens, bytes, pos, '^', Token::Type::caret);
+  if (code == LexCode::ok || code != LexCode::no_match)
+  {
+    return code;
+  }
+  code = lexSingleChar(tokens, bytes, pos, '&', Token::Type::ampersind);
+  if (code == LexCode::ok || code != LexCode::no_match)
+  {
+    return code;
+  }
+  code = lexSingleChar(tokens, bytes, pos, '#', Token::Type::octothorpe);
+  if (code == LexCode::ok || code != LexCode::no_match)
+  {
+    return code;
+  }
+  code = lexSingleChar(tokens, bytes, pos, '~', Token::Type::tilde);
+  if (code == LexCode::ok || code != LexCode::no_match)
+  {
+    return code;
+  }
+  code = lexSingleChar(tokens, bytes, pos, '`', Token::Type::back_tick);
   if (code == LexCode::ok || code != LexCode::no_match)
   {
     return code;
