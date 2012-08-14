@@ -4,10 +4,45 @@
 // iron includes
 #include "iron/lex.h"
 
+auto tokenize(std::shared_ptr<iron::File> file) -> decltype(iron::lex(file))
+{
+  using LexCode = iron::LexCode;
+
+  auto tokens = iron::lex(file);
+  if (tokens.empty())
+  {
+    switch (iron::lexCode)
+    {
+      case LexCode::ok:
+      {
+        break;
+      }
+      case LexCode::bad_file:
+      {
+        iron::errorln("Expected a file name as the first argument to iron.");
+        iron::errorln('\'', file->path(), "' is not a valid Iron source file.");
+        break;
+      }
+      case LexCode::no_match:
+      {
+        iron::errorln("Warning: No tokens parsed from '", file->path(), '\'');
+        break;
+      }
+      default:
+      {
+        iron::errorln("Internal Compiler Error: "
+          "Invalid lex status code (", iron::lexCode, ") detected at ",
+          __FILE__, ':', __LINE__);
+        break;
+      }
+    }
+  }
+  return std::move(tokens);
+}
+
 int main(int argc, char* argv[])
 {
   using File = iron::File;
-  using LexCode = iron::LexCode;
 
   int status = -1;
 
@@ -21,39 +56,9 @@ int main(int argc, char* argv[])
   }
 
   auto file = std::make_shared<File>(File{argv[1]});
-  auto tokens = lex(file);
-  if (tokens.empty())
-  {
-    switch (iron::lexCode)
-    {
-      case LexCode::ok:
-      {
-        status = 0;
-        break;
-      }
-      case LexCode::bad_file:
-      {
-        iron::errorln("Expected a file name as the first argument to iron.");
-        iron::errorln('\'', argv[1], "' is not a valid Iron source file.");
-        status = -1;
-        break;
-      }
-      case LexCode::no_match:
-      {
-        iron::errorln("Warning: No tokens parsed from '", argv[1], '\'');
-        status = 0;
-        break;
-      }
-      default:
-      {
-        iron::errorln("Internal Compiler Error: "
-          "Invalid lex status code (", iron::lexCode, ") detected at ",
-          __FILE__, ':', __LINE__);
-        status = -1;
-        break;
-      }
-    }
-  }
+  auto tokens = tokenize(file);
+  if (tokens.empty()) { return -1; }
+
   iron::println(stdout, "Thanks for using Iron!");
   return status;
 }
