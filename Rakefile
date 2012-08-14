@@ -39,9 +39,10 @@ def decl_obj(name)
 end
 
 objs << decl_obj('main')
+objs << decl_obj('print')
 
 file bin => [objs, BIN_DIR].flatten do
-  sh "g++ -o#{bin} obj/main.o"
+  sh "g++ -o#{bin} #{objs.join(' ')}"
 end
 
 desc 'Builds iron (default task)'

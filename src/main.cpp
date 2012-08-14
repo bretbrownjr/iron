@@ -1,3 +1,6 @@
+// standard includes
+#include <cstdlib>
+
 // iron includes
 #include "iron/lex.h"
 
@@ -7,6 +10,8 @@ int main(int argc, char* argv[])
   using LexCode = iron::LexCode;
 
   int status = -1;
+
+  if (getenv("INFO") != nullptr) { iron::infoOn = true; }
 
   if (argc < 2)
   {

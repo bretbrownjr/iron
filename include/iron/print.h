@@ -1,14 +1,19 @@
 #pragma once
 
+// standard includes
+#include <cerrno>
+#include <cstdio>
+#include <string>
+
 // iron includes
 #include "iron/range.h"
 
 namespace iron
 {
 
-int print(FILE* file) { (void) file; return 0; }
+inline int print(FILE* file) { (void) file; return 0; }
 
-int print(FILE* file, Ascii str)
+inline int print(FILE* file, Ascii str)
 {
   for (size_t i=0; i<str.size(); ++i)
   {
@@ -17,7 +22,7 @@ int print(FILE* file, Ascii str)
   return 0;
 }
 
-int print(FILE* file, const char* c_str)
+inline int print(FILE* file, const char* c_str)
 {
   if (0 < fprintf(file, "%s", c_str))
   {
@@ -26,7 +31,7 @@ int print(FILE* file, const char* c_str)
   return 0;
 }
 
-int print(FILE* file, std::string&& str)
+inline int print(FILE* file, std::string&& str)
 {
   if (0 < fprintf(file, "%s", str.c_str()))
   {
@@ -35,7 +40,7 @@ int print(FILE* file, std::string&& str)
   return 0;
 }
 
-int print(FILE* file, const std::string& str)
+inline int print(FILE* file, const std::string& str)
 {
   if (0 < fprintf(file, "%s", str.c_str()))
   {
@@ -44,7 +49,7 @@ int print(FILE* file, const std::string& str)
   return 0;
 }
 
-int print(FILE* file, char c)
+inline int print(FILE* file, char c)
 {
   if (0 < fprintf(file, "%c", c))
   {
@@ -53,7 +58,7 @@ int print(FILE* file, char c)
   return 0;
 }
 
-int print(FILE* file, size_t number)
+inline int print(FILE* file, size_t number)
 {
   if (0 < fprintf(file, "%lu", number))
   {
@@ -63,7 +68,7 @@ int print(FILE* file, size_t number)
 }
 
 template<typename Ttype, typename... Ttypes>
-int print(FILE* file, Ttype&& firstArg, Ttypes&&... otherArgs)
+inline int print(FILE* file, Ttype&& firstArg, Ttypes&&... otherArgs)
 {
   auto code = print(file, std::forward<Ttype>(firstArg));
   if (code == 0)
@@ -74,21 +79,28 @@ int print(FILE* file, Ttype&& firstArg, Ttypes&&... otherArgs)
 }
 
 template<typename... Ttypes>
-int println(FILE* file, Ttypes&&... args)
+inline int println(FILE* file, Ttypes&&... args)
 {
   return print(file, std::forward<Ttypes>(args)..., "\n");
 }
 
+extern bool infoOn;
+extern bool errorOn;
+
 template<typename... Ttypes>
-int errorln(Ttypes&&... args)
+inline int errorln(Ttypes&&... args)
 {
-  return println(stderr, "Error: ", std::forward<Ttypes>(args)...);
+  return errorOn ?
+    println(stderr, "Error: ", std::forward<Ttypes>(args)...) :
+    0;
 }
 
 template<typename... Ttypes>
-int infoln(Ttypes&&... args)
+inline int infoln(Ttypes&&... args)
 {
-  return println(stdout, std::forward<Ttypes>(args)...);
+  return infoOn ?
+    println(stdout, std::forward<Ttypes>(args)...) :
+    0;
 }
 
 } // namespace iron
