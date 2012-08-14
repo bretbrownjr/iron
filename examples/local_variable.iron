@@ -1,0 +1,5 @@
+fn main: void => i32
+{
+  imm code:i32 {0};
+  ret code;
+}

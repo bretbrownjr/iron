@@ -1,0 +1,7 @@
+fn status: void => i32 { ret 0; }
+
+fn main: void => i32
+{
+  ret status();
+}
+
