@@ -5,9 +5,9 @@
 #include <cstdio>
 #include <memory>
 #include <string>
-#include <vector>
 
 // iron includes
+#include "iron/darray.h"
 #include "iron/file.h"
 #include "iron/token.h"
 
@@ -17,9 +17,6 @@ template<typename Ttype>
 using Shared = std::shared_ptr<Ttype>;
 
 using String = std::string;
-
-template<typename Ttype>
-using Vector = std::vector<Ttype>;
 
 enum class LexCode
 {
@@ -37,14 +34,14 @@ enum class LexCode
 /// @todo TODO: Make this variable thread-local
 LexCode lexCode;
 
-LexCode lexExact(Vector<Token>& tokens, PtrRange<const byte_t>& bytes, Pos& pos,
+LexCode lexExact(Darray<Token>& tokens, PtrRange<const byte_t>& bytes, Pos& pos,
     Token::Type type, Ascii str)
 {
   if (bytes.startsWith(str))
   {
     infoln("Lexed '", str, "' at ", pos);
     const auto size = str.size();
-    tokens.emplace_back(Token{type, pos, bytes.first(size)});
+    tokens.pushBack(Token{type, pos, bytes.first(size)});
     pos.col += size;
     bytes.pop(size);
     return LexCode::ok;
@@ -52,7 +49,7 @@ LexCode lexExact(Vector<Token>& tokens, PtrRange<const byte_t>& bytes, Pos& pos,
   return LexCode::no_match;
 }
 
-LexCode lexKeyword(Vector<Token>& tokens, PtrRange<const byte_t>& bytes, Pos& pos)
+LexCode lexKeyword(Darray<Token>& tokens, PtrRange<const byte_t>& bytes, Pos& pos)
 {
   auto code = lexExact(tokens, bytes, pos, Token::Type::keyword_fn, "fn"_ascii);
   if (code == LexCode::ok || code != LexCode::no_match)
@@ -67,7 +64,7 @@ LexCode lexKeyword(Vector<Token>& tokens, PtrRange<const byte_t>& bytes, Pos& po
   return LexCode::no_match;
 }
 
-LexCode lexIdentifier(Vector<Token>& tokens, PtrRange<const byte_t>& bytes, Pos& pos)
+LexCode lexIdentifier(Darray<Token>& tokens, PtrRange<const byte_t>& bytes, Pos& pos)
 {
   size_t size = 0;
   auto c = bytes.at(size);
@@ -82,14 +79,14 @@ LexCode lexIdentifier(Vector<Token>& tokens, PtrRange<const byte_t>& bytes, Pos&
     auto substr = bytes.first(size);
     bytes.pop(size);
     infoln("Lexed '", substr, "' as a symbol at ", pos);
-    tokens.emplace_back(Token{Token::Type::identifier, pos, substr});
+    tokens.pushBack(Token{Token::Type::identifier, pos, substr});
     pos.col += size;
     return LexCode::ok;
   }
   return LexCode::no_match;
 }
 
-LexCode lexNumberLiteral(Vector<Token>& tokens, PtrRange<const byte_t>& bytes, Pos& pos)
+LexCode lexNumberLiteral(Darray<Token>& tokens, PtrRange<const byte_t>& bytes, Pos& pos)
 {
   size_t size = 0;
   auto c = bytes.at(size);
@@ -103,7 +100,7 @@ LexCode lexNumberLiteral(Vector<Token>& tokens, PtrRange<const byte_t>& bytes, P
     auto substr = bytes.first(size);
     bytes.pop(size);
     infoln("Lexed '", substr, "' as a number at ", pos);
-    tokens.emplace_back(Token{Token::Type::number, pos, substr});
+    tokens.pushBack(Token{Token::Type::number, pos, substr});
     pos.col += size;
     return LexCode::ok;
   }
@@ -112,25 +109,25 @@ LexCode lexNumberLiteral(Vector<Token>& tokens, PtrRange<const byte_t>& bytes, P
   return LexCode::no_match;
 }
 
-LexCode lexStringLiteral(Vector<Token>& tokens, PtrRange<const byte_t>& bytes, Pos& pos)
+LexCode lexStringLiteral(Darray<Token>& tokens, PtrRange<const byte_t>& bytes, Pos& pos)
 {
   (void) tokens; (void) bytes; (void) pos;
   return LexCode::no_match;
 }
 
-LexCode lexCharLiteral(Vector<Token>& tokens, PtrRange<const byte_t>& bytes, Pos& pos)
+LexCode lexCharLiteral(Darray<Token>& tokens, PtrRange<const byte_t>& bytes, Pos& pos)
 {
   (void) tokens; (void) bytes; (void) pos;
   return LexCode::no_match;
 }
 
-LexCode lexSingleChar(Vector<Token>& tokens, PtrRange<const byte_t>& bytes, Pos& pos,
+LexCode lexSingleChar(Darray<Token>& tokens, PtrRange<const byte_t>& bytes, Pos& pos,
   char c, Token::Type type)
 {
   if (bytes.front() == c)
   {
     infoln("Lexed a '", c, "' at ", pos);
-    tokens.emplace_back(Token{type, pos, bytes.first(1)});
+    tokens.pushBack(Token{type, pos, bytes.first(1)});
     ++pos.col;
     bytes.pop();
     return LexCode::ok;
@@ -138,7 +135,7 @@ LexCode lexSingleChar(Vector<Token>& tokens, PtrRange<const byte_t>& bytes, Pos&
   return LexCode::no_match;
 }
 
-LexCode lexPunctuation(Vector<Token>& tokens, PtrRange<const byte_t>& bytes, Pos& pos)
+LexCode lexPunctuation(Darray<Token>& tokens, PtrRange<const byte_t>& bytes, Pos& pos)
 {
   auto code = lexSingleChar(tokens, bytes, pos, '{', Token::Type::left_brace);
   if (code == LexCode::ok || code != LexCode::no_match)
@@ -289,7 +286,7 @@ LexCode lexPunctuation(Vector<Token>& tokens, PtrRange<const byte_t>& bytes, Pos
   return LexCode::no_match;
 }
 
-LexCode lexToken(Vector<Token>& tokens, PtrRange<const byte_t>& bytes, Pos& pos)
+LexCode lexToken(Darray<Token>& tokens, PtrRange<const byte_t>& bytes, Pos& pos)
 {
   (void) tokens; (void) bytes; (void) pos;
   const auto& c = bytes.front();
@@ -348,7 +345,7 @@ LexCode lexToken(Vector<Token>& tokens, PtrRange<const byte_t>& bytes, Pos& pos)
 }
 
 /// @brief Breaks a file up into Tokens
-Vector<Token> lex(Shared<File> file)
+Darray<Token> lex(Shared<File> file)
 {
   lexCode = LexCode::bad_file;
 
@@ -357,7 +354,7 @@ Vector<Token> lex(Shared<File> file)
     return {};
   }
 
-  Vector<Token> tokens;
+  Darray<Token> tokens;
   infoln("Lexing '", file->path());
   auto bytes = file->all();
   infoln("Read ", bytes.size(), " bytes from '", file->path(), "'");

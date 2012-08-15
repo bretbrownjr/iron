@@ -10,15 +10,14 @@ using LexCode = iron::LexCode;
 template<typename Ttype>
 using Shared = std::shared_ptr<Ttype>;
 using Token = iron::Token;
-template<typename Ttype>
-using Vector = std::vector<Ttype>;
-using TokenIter = Vector<Token>::iterator;
 using AstNode = Shared<iron::ast::Node>;
+template<typename Ttype>
+using PtrRange = iron::PtrRange<Ttype>;
 
 auto tokenize(Shared<File> file) -> decltype(iron::lex(file))
 {
   auto tokens = iron::lex(file);
-  if (tokens.empty())
+  if (tokens.isEmpty())
   {
     switch (iron::lexCode)
     {
@@ -49,9 +48,9 @@ auto tokenize(Shared<File> file) -> decltype(iron::lex(file))
   return std::move(tokens);
 }
 
-Shared<AstNode> makeAst(Shared<File> file, TokenIter begin, TokenIter end)
+Shared<AstNode> makeAst(Shared<File> file, PtrRange<Token> tokens)
 {
-  (void) begin; (void) end;
+  (void) file; (void) tokens;
   return {};
 }
 
@@ -72,9 +71,9 @@ int main(int argc, char* argv[])
 
   auto file = std::make_shared<File>(File{argv[1]});
   auto tokens = tokenize(file);
-  if (tokens.empty()) { return -1; }
+  if (tokens.isEmpty()) { return -1; }
 
-  auto ast = makeAst(file, tokens.begin(), tokens.end());
+  auto ast = makeAst(file, tokens.all());
   if (!ast) { return -1; }
 
   iron::println(stdout, "Thanks for using Iron!");
