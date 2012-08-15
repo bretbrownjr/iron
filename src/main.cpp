@@ -10,7 +10,7 @@ using LexCode = iron::LexCode;
 template<typename Ttype>
 using Shared = std::shared_ptr<Ttype>;
 using Token = iron::Token;
-using AstNode = Shared<iron::ast::Node>;
+using AstNode = iron::ast::Node;
 template<typename Ttype>
 using PtrRange = iron::PtrRange<Ttype>;
 
@@ -50,8 +50,12 @@ auto tokenize(Shared<File> file) -> decltype(iron::lex(file))
 
 Shared<AstNode> makeAst(Shared<File> file, PtrRange<Token> tokens)
 {
-  (void) file; (void) tokens;
-  return {};
+  auto ast = iron::ast::parse(tokens);
+  if (!ast)
+  {
+    iron::errorln("Failed to parse '", file->path(), "'");
+  }
+  return ast;
 }
 
 int main(int argc, char* argv[])

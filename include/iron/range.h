@@ -26,6 +26,13 @@ public :
   PtrRange(PtrRange&& moveThis) : _begin(moveThis._begin), _end(moveThis._end) {}
   ~PtrRange() = default;
 
+  PtrRange<Ttype>& operator=(PtrRange<Ttype> copyThis)
+  {
+    _begin = copyThis._begin;
+    _end = copyThis._end;
+    return *this;
+  }
+
   Ttype& operator[](size_t index) { return at(index); }
   const Ttype& operator[](size_t index) const { return at(index); }
 
