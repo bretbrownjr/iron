@@ -23,6 +23,7 @@ struct Node
     nspace, // namespace is a reserved word
     ret_stmnt,
     rvalue,
+    tname, // typename is a reserved word
     var_decl,
     var_decl_stmnt
   };
@@ -48,13 +49,22 @@ public :
   void addStmnt(Shared<Node> stmnt) { _stmnts.pushBack(stmnt); }
 };
 
+struct Type : public Node
+{
+
+protected :
+  /// This constructor is protected because one is not supposed to construct a
+  /// type except through child classes.
+  Type(Kind k, Pos p) : Node(k, p) {}
+};
+
 struct NumLit : public Node
 {
   NumLit() = delete;
 
   bool isNeg = false;
   Ascii intPart;
-  Ascii numType;
+  Shared<Type> type;
 
 protected :
   /// This constructor is protected because one is not supposed to construct a
@@ -91,12 +101,17 @@ struct FuncDefn : public Node
   Shared<Block> block;
 };
 
-struct FuncType : public Node
+struct FuncType : public Type
 {
-  FuncType(Pos p) : Node(Kind::func_type, p) {}
+  FuncType(Pos p) : Type(Kind::func_type, p) {}
 
   // TODO: ins
   // TODO: outs
+};
+
+struct Typename : public Type
+{
+  Typename(Pos p) : Type(Kind::tname, p) {}
 };
 
 struct Initializer : public Node
@@ -146,7 +161,7 @@ struct VarDecl : public Node
   // an empty name is invalid
   Ascii name;
   // an empty type implies type deduction
-  Ascii varType;
+  Shared<Type> type;
 };
 
 struct VarDeclStmnt : public Node

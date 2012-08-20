@@ -12,6 +12,102 @@ namespace ast
 
 using Tokens = PtrRange<Token>;
 
+Shared<Typename> parseTypename(Tokens& tokens, Shared<Namespace> nspace)
+{
+  (void) nspace;
+
+  if (tokens.front().type != Token::Type::identifier)
+  {
+    return {};
+  }
+  auto tname = std::make_shared<Typename>(tokens.front().pos);
+  tokens.pop();
+
+  return tname;
+}
+
+Shared<VarDecl> parseVarDecl(Tokens& tokens, Shared<Namespace> nspace);
+
+Shared<FuncType> parseFuncType(Tokens& tokens, Shared<Namespace> nspace)
+{
+  (void) nspace;
+
+  auto remainder = tokens;
+
+  // TODO: Generalize ins to be a parentheses-grouped list of variable
+  // declarations.
+  if (remainder[0].type != Token::Type::left_paren &&
+      remainder[1].type != Token::Type::right_paren)
+  {
+    return {};
+  }
+  remainder.pop(2);
+
+  if (remainder.front().type != Token::Type::map)
+  {
+    return {};
+  }
+
+  // At this point, it's safe to assume that this is a function type
+  auto funcType = std::make_shared<FuncType>(remainder.front().pos);
+  remainder.pop();
+
+  // Start parsing the return types
+  if (remainder[0].type != Token::Type::left_paren)
+  {
+    errorln("Expected a return argument list at ", remainder.front().pos);
+    return {};
+  }
+  remainder.pop();
+
+  // TODO: while not ')', parse comma-separated variable declarations
+  bool expectComma = false;
+  while (remainder.front().type != Token::Type::right_paren)
+  {
+    if (expectComma)
+    {
+      if (remainder.front().type != Token::Type::comma)
+      {
+        errorln("Expected a comma as part of a parameter list at ",
+          remainder.front().pos);
+        return {};
+      }
+
+      remainder.pop(); // Pop the comma
+    }
+
+    // else expect a variable declaration
+    auto varDecl = parseVarDecl(remainder, nspace);
+    if (!varDecl)
+    {
+      errorln("Expected a variable declaration as part of a parameter "
+          "list at ", remainder.front().pos);
+      return {};
+    }
+
+    expectComma = true;
+  }
+  remainder.pop(); // Pops the right parenthesis
+
+  tokens = remainder;
+  return funcType;
+}
+
+Shared<Type> parseType(Tokens& tokens, Shared<Namespace> nspace)
+{
+  {
+    auto fnType = parseFuncType(tokens, nspace);
+    if (fnType) { return fnType; }
+  }
+
+  {
+    auto tname = parseTypename(tokens, nspace);
+    if (tname) { return tname; }
+  }
+
+  return {};
+}
+
 Shared<NumLit> parseNumberLit(Tokens& tokens, Shared<Namespace> nspace)
 {
   (void) nspace; // TODO: Scope literals?
@@ -60,14 +156,13 @@ Shared<NumLit> parseNumberLit(Tokens& tokens, Shared<Namespace> nspace)
     // It is now safe to assume that this number literal has a suffix
     const auto colonPos = remainder.front().pos;
     remainder.pop();
-    if (remainder.front().type != Token::Type::identifier)
-    {
-      errorln("Expected a number literal suffix following the colon at ",
-        colonPos);
-    }
 
-    numberLit->numType = remainder.front().value;
-    remainder.pop();
+    numberLit->type = parseType(remainder, nspace);
+    if (!numberLit)
+    {
+      errorln("Expected a type following the colon at ", colonPos);
+      return {};
+    }
   }
 
   tokens = remainder;
@@ -165,8 +260,6 @@ Shared<Node> parseRetStmnt(Tokens& tokens, Shared<Namespace> nspace)
 
 Shared<VarDecl> parseVarDecl(Tokens& tokens, Shared<Namespace> nspace)
 {
-  (void) nspace;
-
   auto remainder = tokens;
 
   if (remainder.front().type != Token::Type::identifier)
@@ -183,16 +276,9 @@ Shared<VarDecl> parseVarDecl(Tokens& tokens, Shared<Namespace> nspace)
 
   // At this point, it's safe to assume that this is a variable declaration.
   auto varDecl = std::make_shared<VarDecl>(name.pos, name.value);
-  const auto colonPos = remainder.front().pos;
-  remainder.pop();
+  remainder.pop(); // pop the colon token
 
-  if (remainder.front().type != Token::Type::identifier)
-  {
-    errorln("Expected a type for the variable declared at ", colonPos);
-    return {};
-  }
-  varDecl->varType = remainder.front().value;
-  remainder.pop();
+  varDecl->type = parseType(remainder, nspace);
 
   tokens = remainder;
   return varDecl;
@@ -306,73 +392,6 @@ Shared<Block> parseBlock(Tokens& tokens, Shared<Namespace> nspace)
   }
 
   return {};
-}
-
-Shared<FuncType> parseFuncType(Tokens& tokens, Shared<Namespace> nspace)
-{
-  (void) nspace;
-
-  auto remainder = tokens;
-
-  // TODO: Generalize ins to be a parentheses-grouped list of variable
-  // declarations.
-  if (remainder[0].type != Token::Type::left_paren &&
-      remainder[1].type != Token::Type::right_paren)
-  {
-    errorln("Expected a parameter list at ", remainder.front().pos);
-    return {};
-  }
-  remainder.pop(2);
-
-  if (remainder.front().type != Token::Type::map)
-  {
-    errorln("Expected a '=>' at ", remainder.front().pos);
-    return {};
-  }
-
-  // At this point, it's safe to assume that this is a function type
-  auto funcType = std::make_shared<FuncType>(remainder.front().pos);
-  remainder.pop();
-
-  // Start parsing the return types
-  if (remainder[0].type != Token::Type::left_paren)
-  {
-    errorln("Expected a return argument list at ", remainder.front().pos);
-    return {};
-  }
-  remainder.pop();
-
-  // TODO: while not ')', parse comma-separated variable declarations
-  bool expectComma = false;
-  while (remainder.front().type != Token::Type::right_paren)
-  {
-    if (expectComma)
-    {
-      if (remainder.front().type != Token::Type::comma)
-      {
-        errorln("Expected a comma as part of a parameter list at ",
-          remainder.front().pos);
-        return {};
-      }
-
-      remainder.pop(); // Pop the comma
-    }
-
-    // else expect a variable declaration
-    auto varDecl = parseVarDecl(remainder, nspace);
-    if (!varDecl)
-    {
-      errorln("Expected a variable declaration as part of a parameter "
-          "list at ", remainder.front().pos);
-      return {};
-    }
-
-    expectComma = true;
-  }
-  remainder.pop(); // Pops the right parenthesis
-
-  tokens = remainder;
-  return funcType;
 }
 
 // <fn> <identifier>? (':' <ins> ('=' '>' <outs>)? )? <block>
