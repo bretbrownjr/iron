@@ -1,0 +1,8 @@
+fn status: ()=>(code: i32) { ret 0; }
+
+fn main: ()=>(code: i32)
+{
+  f: ()=>(code:i32) { status };
+  ret f();
+}
+
