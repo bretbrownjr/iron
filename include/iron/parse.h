@@ -10,6 +10,8 @@ namespace ast
 {
 
 using Tokens = PtrRange<Token>;
+template<typename Ttype>
+using Weak = std::weak_ptr<Ttype>;
 
 struct Node
 {
@@ -128,7 +130,7 @@ struct Namespace : public Node
 {
   Namespace(Pos p) : Node(Type::nspace, p) {}
 
-  std::weak_ptr<Node> parent;
+  Weak<Node> parent;
   std::string name;
   // TODO: Need a list of declarations
 };
