@@ -14,6 +14,7 @@ struct Node
   enum class Kind
   {
     block,
+    expr_stmnt,
     float_lit,
     int_lit,
     initializer,
@@ -47,6 +48,13 @@ private :
 public :
   Block(Pos p) : Node(Kind::block, p) {}
   void addStmnt(Shared<Node> stmnt) { _stmnts.pushBack(stmnt); }
+};
+
+struct ExprStmnt : public Node
+{
+  ExprStmnt(Shared<Node> e) : Node(Kind::expr_stmnt, e->pos()), expr(e) {}
+
+  Shared<Node> expr;
 };
 
 struct Type : public Node

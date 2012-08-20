@@ -343,16 +343,38 @@ Shared<VarDeclStmnt> parseVarDeclStmnt(Tokens& tokens, Shared<Namespace> nspace)
   return varDecl;
 }
 
+Shared<Node> parseExprStmnt(Tokens& tokens, Shared<Namespace> nspace)
+{
+  auto remainder = tokens;
+
+  auto expr = parseExpr(remainder, nspace);
+  if (!expr) { return {}; }
+
+  if (remainder.front().type != Token::Type::semicolon)
+  {
+    return {};
+  }
+  remainder.pop(); // pop the semicolon token
+
+  tokens = remainder;
+  return std::make_shared<ExprStmnt>(expr);
+}
+
 Shared<Node> parseStmnt(Tokens& tokens, Shared<Namespace> nspace)
 {
   {
-    auto stmnt = parseRetStmnt(tokens, nspace);
-    if (stmnt) { return stmnt; }
+    auto retStmnt = parseRetStmnt(tokens, nspace);
+    if (retStmnt) { return retStmnt; }
   }
 
   {
-    auto stmnt = parseVarDeclStmnt(tokens, nspace);
-    if (stmnt) { return stmnt; }
+    auto varDecl = parseVarDeclStmnt(tokens, nspace);
+    if (varDecl) { return varDecl; }
+  }
+
+  {
+    auto exprStmnt = parseExprStmnt(tokens, nspace);
+    if (exprStmnt) { return exprStmnt; }
   }
 
   return {};
@@ -373,15 +395,16 @@ Shared<Block> parseBlock(Tokens& tokens, Shared<Namespace> nspace)
   // TODO: While not }, parse statement
   while (true)
   {
+    if (tokens.front().type == Token::Type::right_brace)
+    {
+      tokens.pop();
+      return block;
+    }
+
     auto stmnt = parseStmnt(tokens, nspace);
     if (stmnt)
     {
       block->addStmnt(stmnt);
-    }
-    else if (tokens.front().type == Token::Type::right_brace)
-    {
-      tokens.pop();
-      return block;
     }
     else
     {
