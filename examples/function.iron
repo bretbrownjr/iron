@@ -1,6 +1,6 @@
-fn status: void => i32 { ret 0; }
+fn status: () => (code: i32) { ret 0; }
 
-fn main: void => i32
+fn main: () => (code: i32)
 {
   ret status();
 }

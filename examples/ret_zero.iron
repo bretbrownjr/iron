@@ -1,1 +1,1 @@
-fn main: void => i32 { ret 0; }
+fn main: () => (status: i32) { ret 0; }

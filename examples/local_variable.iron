@@ -1,5 +1,5 @@
-fn main: void => i32
+fn main: () => (code: i32)
 {
-  imm code:i32 {0};
-  ret code;
+  imm status:i32 {0};
+  code = status;
 }

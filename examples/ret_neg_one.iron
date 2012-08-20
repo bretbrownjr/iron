@@ -1,1 +1,1 @@
-fn main: void => i32 { ret -1; }
+fn main: () => (code: i32) { ret -1; }
