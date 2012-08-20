@@ -18,11 +18,14 @@ struct Node
     block,
     float_lit,
     int_lit,
+    initializer,
     func_defn,
     func_type,
     nspace, // namespace is a reserved word
     ret_stmnt,
-    var_decl
+    rvalue,
+    var_decl,
+    var_decl_stmnt
   };
 
   Node() = delete;
@@ -71,6 +74,14 @@ struct FuncType : public Node
   // TODO: outs
 };
 
+struct Rvalue : public Node
+{
+  Rvalue(Pos p, Ascii n) : Node(Type::rvalue, p), name(n) {}
+
+  // an empty name is invalid
+  Ascii name;
+};
+
 struct VarDecl : public Node
 {
   VarDecl(Pos p, Ascii n) : Node(Type::var_decl, p), name(n) {}
@@ -79,6 +90,26 @@ struct VarDecl : public Node
   Ascii name;
   // an empty type implies type deduction
   Ascii varType;
+};
+
+struct Initializer : public Node
+{
+private :
+  Darray<Shared<Node>> _exprs;
+
+public :
+  Initializer(Pos p) : Node(Type::initializer, p) {}
+  void addExpr(Shared<Node> expr) { _exprs.pushBack(expr); }
+};
+
+struct VarDeclStmnt : public Node
+{
+  VarDeclStmnt(Pos p) : Node(Type::var_decl_stmnt, p) {}
+
+  // an empty variable declaration is invalid
+  Shared<VarDecl> decl;
+  // an empty initializer list means default construction
+  Shared<Initializer> initializer;
 };
 
 struct FuncDefn : public Node
@@ -185,9 +216,31 @@ Shared<Node> parseLit(Tokens& tokens, Shared<Namespace> nspace)
   return parseNumberLit(tokens, nspace);
 }
 
+Shared<Rvalue> parseRvalue(Tokens& tokens, Shared<Namespace> nspace)
+{
+  (void) nspace;
+
+  if (tokens.front().type != Token::Type::identifier) { return {}; }
+
+  auto var = std::make_shared<Rvalue>(tokens.front().pos, tokens.front().value);
+  tokens.pop();
+
+  return var;
+}
+
 Shared<Node> parseExpr(Tokens& tokens, Shared<Namespace> nspace)
 {
-  return parseLit(tokens, nspace);
+  {
+    auto expr = parseLit(tokens, nspace);
+    if (expr) { return expr; }
+  }
+
+  {
+    auto expr = parseRvalue(tokens, nspace);
+    if (expr) { return expr; }
+  }
+
+  return {};
 }
 
 Shared<Node> parseRetStmnt(Tokens& tokens, Shared<Namespace> nspace)
@@ -214,9 +267,113 @@ Shared<Node> parseRetStmnt(Tokens& tokens, Shared<Namespace> nspace)
   return retStmnt;
 }
 
+Shared<VarDecl> parseVarDecl(Tokens& tokens, Shared<Namespace> nspace)
+{
+  (void) nspace;
+
+  auto remainder = tokens;
+
+  if (remainder.front().type != Token::Type::identifier)
+  {
+    return {};
+  }
+  auto name = remainder.front();
+  remainder.pop();
+
+  if (remainder.front().type != Token::Type::colon)
+  {
+    return {};
+  }
+
+  // At this point, it's safe to assume that this is a variable declaration.
+  auto varDecl = std::make_shared<VarDecl>(name.pos, name.value);
+  const auto colonPos = remainder.front().pos;
+  remainder.pop();
+
+  if (remainder.front().type != Token::Type::identifier)
+  {
+    errorln("Expected a type for the variable declared at ", colonPos);
+    return {};
+  }
+  varDecl->varType = remainder.front().value;
+  remainder.pop();
+
+  tokens = remainder;
+  return varDecl;
+}
+
+Shared<Initializer> parseInitializer(Tokens& tokens, Shared<Namespace> nspace)
+{
+  auto remainder = tokens;
+
+  if (remainder.front().type != Token::Type::left_brace) { return {}; }
+
+  auto initializer = std::make_shared<Initializer>(remainder.front().pos);
+  remainder.pop();
+
+  bool expectComma = false;
+  while (remainder.front().type != Token::Type::right_brace)
+  {
+    if (expectComma)
+    {
+      errorln("Failed to parse an initializer list. Expected a comma at ",
+        remainder.front().pos);
+      return {};
+    }
+
+    auto expr = parseExpr(remainder, nspace);
+    if (!expr)
+    {
+      errorln("Expected an expression as part of the initializer list at ",
+        initializer->pos());
+      return {};
+    }
+    initializer->addExpr(expr);
+    expectComma = true;
+  }
+  remainder.pop(); // pop the right curly brace
+
+  tokens = remainder;
+  return initializer;
+}
+
+Shared<VarDeclStmnt> parseVarDeclStmnt(Tokens& tokens, Shared<Namespace> nspace)
+{
+  auto remainder = tokens;
+  auto decl = parseVarDecl(remainder, nspace);
+  if (!decl) { return {}; }
+
+  // At this point, it's safe to assume a variable declaration statement is here.
+  auto varDecl = std::make_shared<VarDeclStmnt>(decl->pos());
+  varDecl->decl = decl;
+
+  // Optional initializer
+  varDecl->initializer = parseInitializer(remainder, nspace);
+
+  if (remainder.front().type != Token::Type::semicolon)
+  {
+    errorln("Expected a semicolon to terminate the variable declaration at ",
+      varDecl->pos());
+  }
+  remainder.pop(); // pop the semicolon
+  
+  tokens = remainder;
+  return varDecl;
+}
+
 Shared<Node> parseStmnt(Tokens& tokens, Shared<Namespace> nspace)
 {
-  return parseRetStmnt(tokens, nspace);
+  {
+    auto stmnt = parseRetStmnt(tokens, nspace);
+    if (stmnt) { return stmnt; }
+  }
+
+  {
+    auto stmnt = parseVarDeclStmnt(tokens, nspace);
+    if (stmnt) { return stmnt; }
+  }
+
+  return {};
 }
 
 // { <statement>* }
@@ -253,41 +410,6 @@ Shared<Block> parseBlock(Tokens& tokens, Shared<Namespace> nspace)
   }
 
   return {};
-}
-
-Shared<VarDecl> parseVarDecl(Tokens& tokens, Shared<Namespace> nspace)
-{
-  (void) nspace;
-
-  auto remainder = tokens;
-
-  if (remainder.front().type != Token::Type::identifier)
-  {
-    return {};
-  }
-  auto name = remainder.front();
-  remainder.pop();
-
-  if (remainder.front().type != Token::Type::colon)
-  {
-    return {};
-  }
-
-  // At this point, it's safe to assume that this is a variable declaration.
-  auto varDecl = std::make_shared<VarDecl>(name.pos, name.value);
-  const auto colonPos = remainder.front().pos;
-  remainder.pop();
-
-  if (remainder.front().type != Token::Type::identifier)
-  {
-    errorln("Expected a type for the variable declared at ", colonPos);
-    return {};
-  }
-  varDecl->varType = remainder.front().value;
-  remainder.pop();
-
-  tokens = remainder;
-  return varDecl;
 }
 
 Shared<FuncType> parseFuncType(Tokens& tokens, Shared<Namespace> nspace)
