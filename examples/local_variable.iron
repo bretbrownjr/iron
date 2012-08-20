@@ -1,5 +1,5 @@
 fn main: () => (code: i32)
 {
-  imm status:i32 {0};
-  code = status;
+  status:i32 {0};
+  ret status;
 }
