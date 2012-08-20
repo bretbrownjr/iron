@@ -19,6 +19,7 @@ struct Node
     float_lit,
     int_lit,
     initializer,
+    func_call,
     func_defn,
     func_type,
     nspace, // namespace is a reserved word
@@ -70,6 +71,15 @@ struct FloatLit : public NumLit
   Ascii floatPart;
 };
 
+struct FuncCall : public Node
+{
+  FuncCall(Pos p) : Node(Type::func_call, p) {}
+
+  // empty name is never valid
+  Ascii name;
+  // TODO: arguments
+};
+
 struct FuncType;
 
 struct FuncDefn : public Node
@@ -106,6 +116,14 @@ struct IntLit : public NumLit
   IntLit(Pos p) : NumLit(Type::int_lit, p) {}
 };
 
+struct Lvalue : public Node
+{
+  Lvalue(Pos p, Ascii n) : Node(Type::rvalue, p), name(n) {}
+
+  // an empty name is invalid
+  Ascii name;
+};
+
 struct Namespace : public Node
 {
   Namespace(Pos p) : Node(Type::nspace, p) {}
@@ -121,14 +139,6 @@ struct RetStmnt : public Node
 
   // A null expr implies a void return;
   Shared<Node> expr;
-};
-
-struct Rvalue : public Node
-{
-  Rvalue(Pos p, Ascii n) : Node(Type::rvalue, p), name(n) {}
-
-  // an empty name is invalid
-  Ascii name;
 };
 
 struct VarDecl : public Node
@@ -218,13 +228,41 @@ Shared<Node> parseLit(Tokens& tokens, Shared<Namespace> nspace)
   return parseNumberLit(tokens, nspace);
 }
 
-Shared<Rvalue> parseRvalue(Tokens& tokens, Shared<Namespace> nspace)
+Shared<FuncCall> parseFuncCall(Tokens& tokens, Shared<Namespace> nspace)
+{
+  (void) nspace;
+  auto remainder = tokens;
+
+  if (remainder.front().type != Token::Type::identifier) { return {}; }
+
+  auto fnCall = std::make_shared<FuncCall>(remainder.front().pos);
+  fnCall->name = remainder.front().value;
+  remainder.pop();
+
+  if (remainder[0].type != Token::Type::left_paren &&
+      remainder[1].type != Token::Type::right_paren)
+  {
+    // Not a function call; probably an lvalue.
+    return {};
+  }
+  remainder.pop(2);
+
+  tokens = remainder;
+  return fnCall;
+}
+
+Shared<Node> parseRvalue(Tokens& tokens, Shared<Namespace> nspace)
+{
+  return parseFuncCall(tokens, nspace);
+}
+
+Shared<Lvalue> parseLvalue(Tokens& tokens, Shared<Namespace> nspace)
 {
   (void) nspace;
 
   if (tokens.front().type != Token::Type::identifier) { return {}; }
 
-  auto var = std::make_shared<Rvalue>(tokens.front().pos, tokens.front().value);
+  auto var = std::make_shared<Lvalue>(tokens.front().pos, tokens.front().value);
   tokens.pop();
 
   return var;
@@ -239,6 +277,11 @@ Shared<Node> parseExpr(Tokens& tokens, Shared<Namespace> nspace)
 
   {
     auto expr = parseRvalue(tokens, nspace);
+    if (expr) { return expr; }
+  }
+
+  {
+    auto expr = parseLvalue(tokens, nspace);
     if (expr) { return expr; }
   }
 
@@ -540,7 +583,22 @@ Shared<Node> parse(Tokens tokens)
   auto global = std::make_shared<Namespace>(Pos{0,0});
   global->name = "_";
 
-  return parseDecl(tokens, global);
+  auto decl = parseDecl(tokens, global);
+
+  do
+  {
+    if (!decl)
+    {
+      errorln("Expected a declaration at ", tokens.front().pos);
+      return {};
+    }
+
+    // TODO: Add the decl to the namespace
+
+    decl = parseDecl(tokens, global);
+  } while (!tokens.isEmpty());
+
+  return global;
 }
 
 } // namespace ast
