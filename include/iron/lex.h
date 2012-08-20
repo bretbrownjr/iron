@@ -74,7 +74,7 @@ LexCode lexIdentifier(Darray<Token>& tokens, PtrRange<const byte_t>& bytes, Pos&
     ++size;
     c = bytes.at(size);
   }
-  if (size > 1)
+  if (size > 0)
   {
     auto substr = bytes.first(size);
     bytes.pop(size);
