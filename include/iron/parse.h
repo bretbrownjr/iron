@@ -92,26 +92,33 @@ struct FuncDefn : public Node
   Shared<Block> block;
 };
 
-struct IntLit : public Node
+struct NumLit : public Node
 {
-  IntLit(Pos p) : Node(Type::int_lit, p) {}
+  NumLit() = delete;
 
   bool isNeg = false;
-  Token intPart;
-  Token suffix;
+  Ascii intPart;
+  Ascii numType;
+
+protected :
+  /// This constructor is protected because one is not supposed to construct a
+  /// number literal except through child classes.
+  NumLit(Type t, Pos p) : Node(t, p) {}
 };
 
-struct FloatLit : public Node
+struct IntLit : public NumLit
 {
-  FloatLit(Pos p) : Node(Type::int_lit, p) {}
-
-  bool isNeg = false;
-  Token intPart;
-  Token floatPart;
-  Token suffix;
+  IntLit(Pos p) : NumLit(Type::int_lit, p) {}
 };
 
-Shared<Node> parseNumberLit(Tokens& tokens, Shared<Namespace> nspace)
+struct FloatLit : public NumLit
+{
+  FloatLit(Pos p) : NumLit(Type::int_lit, p) {}
+
+  Ascii floatPart;
+};
+
+Shared<NumLit> parseNumberLit(Tokens& tokens, Shared<Namespace> nspace)
 {
   (void) nspace; // TODO: Scope literals?
 
@@ -127,28 +134,47 @@ Shared<Node> parseNumberLit(Tokens& tokens, Shared<Namespace> nspace)
   {
     return {};
   }
-  auto& intPart = remainder.front();
+  // It is now safe to assume that this is some sort of number literal
+  auto& intPart = remainder.front().value;
   remainder.pop();
 
   // A period indicates a float literal
   const bool isFloat = (remainder.front().type == Token::Type::period);
 
-  Shared<Node> numberLit;
+  Shared<NumLit> numberLit;
   if (isFloat)
   {
-    // TODO: Implement float parsing
-    return {};
+    remainder.pop();
+    auto floatLit = std::make_shared<FloatLit>(pos);
+
+    // Optional number following the decimal point
+    if (remainder.front().type == Token::Type::number)
+    {
+      floatLit->floatPart = remainder.front().value;
+      remainder.pop();
+    }
   }
   else
   {
-    auto intLit = std::make_shared<IntLit>(pos);
-    intLit->isNeg = isNeg;
-    intLit->intPart = intPart;
-    
-    numberLit = intLit;
+    numberLit = std::make_shared<IntLit>(pos);
   }
+  numberLit->isNeg = isNeg;
+  numberLit->intPart = intPart;
 
-  // TODO: Optional literal suffix
+  if (remainder.front().type == Token::Type::colon)
+  {
+    // It is now safe to assume that this number literal has a suffix
+    const auto colonPos = remainder.front().pos;
+    remainder.pop();
+    if (remainder.front().type != Token::Type::identifier)
+    {
+      errorln("Expected a number literal suffix following the colon at ",
+        colonPos);
+    }
+
+    numberLit->numType = remainder.front().value;
+    remainder.pop();
+  }
 
   tokens = remainder;
   return numberLit;
