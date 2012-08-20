@@ -42,6 +42,7 @@ struct Token
     left_bracket,
     left_paren,
     less_than,
+    map,
     minus,
     number,
     octothorpe,

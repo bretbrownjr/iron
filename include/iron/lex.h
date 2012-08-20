@@ -167,6 +167,11 @@ LexCode lexPunctuation(Darray<Token>& tokens, PtrRange<const byte_t>& bytes, Pos
   {
     return code;
   }
+  code = lexExact(tokens, bytes, pos, Token::Type::map, "=>"_ascii);
+  if (code == LexCode::ok || code != LexCode::no_match)
+  {
+    return code;
+  }
   code = lexSingleChar(tokens, bytes, pos, ',', Token::Type::comma);
   if (code == LexCode::ok || code != LexCode::no_match)
   {
