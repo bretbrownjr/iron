@@ -11,7 +11,7 @@ using Weak = std::weak_ptr<Ttype>;
 
 struct Node
 {
-  enum class Type
+  enum class Kind
   {
     block,
     float_lit,
@@ -28,14 +28,14 @@ struct Node
   };
 
   Node() = delete;
-  Node(Type t, Pos p) : _pos(p), _type(t) {}
+  Node(Kind t, Pos p) : _pos(p), _type(t) {}
 
   Pos pos() const { return _pos; }
-  Type type() const { return _type; }
+  Kind type() const { return _type; }
 
 private :
   const Pos _pos;
-  const Type _type;
+  const Kind _type;
 };
 
 struct Block : public Node
@@ -44,7 +44,7 @@ private :
   Darray<Shared<Node>> _stmnts;
 
 public :
-  Block(Pos p) : Node(Type::block, p) {}
+  Block(Pos p) : Node(Kind::block, p) {}
   void addStmnt(Shared<Node> stmnt) { _stmnts.pushBack(stmnt); }
 };
 
@@ -59,19 +59,19 @@ struct NumLit : public Node
 protected :
   /// This constructor is protected because one is not supposed to construct a
   /// number literal except through child classes.
-  NumLit(Type t, Pos p) : Node(t, p) {}
+  NumLit(Kind t, Pos p) : Node(t, p) {}
 };
 
 struct FloatLit : public NumLit
 {
-  FloatLit(Pos p) : NumLit(Type::int_lit, p) {}
+  FloatLit(Pos p) : NumLit(Kind::int_lit, p) {}
 
   Ascii floatPart;
 };
 
 struct FuncCall : public Node
 {
-  FuncCall(Pos p) : Node(Type::func_call, p) {}
+  FuncCall(Pos p) : Node(Kind::func_call, p) {}
 
   // empty name is never valid
   Ascii name;
@@ -82,7 +82,7 @@ struct FuncType;
 
 struct FuncDefn : public Node
 {
-  FuncDefn(Pos p) : Node(Type::func_defn, p) {}
+  FuncDefn(Pos p) : Node(Kind::func_defn, p) {}
 
   // empty name implies an anonymous function
   Ascii name;
@@ -93,7 +93,7 @@ struct FuncDefn : public Node
 
 struct FuncType : public Node
 {
-  FuncType(Pos p) : Node(Type::func_type, p) {}
+  FuncType(Pos p) : Node(Kind::func_type, p) {}
 
   // TODO: ins
   // TODO: outs
@@ -105,18 +105,18 @@ private :
   Darray<Shared<Node>> _exprs;
 
 public :
-  Initializer(Pos p) : Node(Type::initializer, p) {}
+  Initializer(Pos p) : Node(Kind::initializer, p) {}
   void addExpr(Shared<Node> expr) { _exprs.pushBack(expr); }
 };
 
 struct IntLit : public NumLit
 {
-  IntLit(Pos p) : NumLit(Type::int_lit, p) {}
+  IntLit(Pos p) : NumLit(Kind::int_lit, p) {}
 };
 
 struct Lvalue : public Node
 {
-  Lvalue(Pos p, Ascii n) : Node(Type::rvalue, p), name(n) {}
+  Lvalue(Pos p, Ascii n) : Node(Kind::rvalue, p), name(n) {}
 
   // an empty name is invalid
   Ascii name;
@@ -124,7 +124,7 @@ struct Lvalue : public Node
 
 struct Namespace : public Node
 {
-  Namespace(Pos p) : Node(Type::nspace, p) {}
+  Namespace(Pos p) : Node(Kind::nspace, p) {}
 
   Weak<Node> parent;
   std::string name;
@@ -133,7 +133,7 @@ struct Namespace : public Node
 
 struct RetStmnt : public Node
 {
-  RetStmnt(Pos p) : Node(Type::ret_stmnt, p) {}
+  RetStmnt(Pos p) : Node(Kind::ret_stmnt, p) {}
 
   // A null expr implies a void return;
   Shared<Node> expr;
@@ -141,7 +141,7 @@ struct RetStmnt : public Node
 
 struct VarDecl : public Node
 {
-  VarDecl(Pos p, Ascii n) : Node(Type::var_decl, p), name(n) {}
+  VarDecl(Pos p, Ascii n) : Node(Kind::var_decl, p), name(n) {}
 
   // an empty name is invalid
   Ascii name;
@@ -151,7 +151,7 @@ struct VarDecl : public Node
 
 struct VarDeclStmnt : public Node
 {
-  VarDeclStmnt(Pos p) : Node(Type::var_decl_stmnt, p) {}
+  VarDeclStmnt(Pos p) : Node(Kind::var_decl_stmnt, p) {}
 
   // an empty variable declaration is invalid
   Shared<VarDecl> decl;
