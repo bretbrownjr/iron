@@ -1,0 +1,8 @@
+fn status { }
+
+fn main: () => (code: i32)
+{
+  status();
+  ret 0;
+}
+
