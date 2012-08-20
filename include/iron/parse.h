@@ -39,6 +39,73 @@ private :
   const Type _type;
 };
 
+struct Block : public Node
+{
+private :
+  Darray<Shared<Node>> _stmnts;
+
+public :
+  Block(Pos p) : Node(Type::block, p) {}
+  void addStmnt(Shared<Node> stmnt) { _stmnts.pushBack(stmnt); }
+};
+
+struct NumLit : public Node
+{
+  NumLit() = delete;
+
+  bool isNeg = false;
+  Ascii intPart;
+  Ascii numType;
+
+protected :
+  /// This constructor is protected because one is not supposed to construct a
+  /// number literal except through child classes.
+  NumLit(Type t, Pos p) : Node(t, p) {}
+};
+
+struct FloatLit : public NumLit
+{
+  FloatLit(Pos p) : NumLit(Type::int_lit, p) {}
+
+  Ascii floatPart;
+};
+
+struct FuncType;
+
+struct FuncDefn : public Node
+{
+  FuncDefn(Pos p) : Node(Type::func_defn, p) {}
+
+  // empty name implies an anonymous function
+  Ascii name;
+  // null funcType is never valid
+  Shared<FuncType> funcType;
+  Shared<Block> block;
+};
+
+struct FuncType : public Node
+{
+  FuncType(Pos p) : Node(Type::func_type, p) {}
+
+  // TODO: ins
+  // TODO: outs
+};
+
+struct Initializer : public Node
+{
+private :
+  Darray<Shared<Node>> _exprs;
+
+public :
+  Initializer(Pos p) : Node(Type::initializer, p) {}
+  void addExpr(Shared<Node> expr) { _exprs.pushBack(expr); }
+};
+
+struct IntLit : public NumLit
+{
+  IntLit(Pos p) : NumLit(Type::int_lit, p) {}
+};
+
 struct Namespace : public Node
 {
   Namespace(Pos p) : Node(Type::nspace, p) {}
@@ -54,24 +121,6 @@ struct RetStmnt : public Node
 
   // A null expr implies a void return;
   Shared<Node> expr;
-};
-
-struct Block : public Node
-{
-private :
-  Darray<Shared<Node>> _stmnts;
-
-public :
-  Block(Pos p) : Node(Type::block, p) {}
-  void addStmnt(Shared<Node> stmnt) { _stmnts.pushBack(stmnt); }
-};
-
-struct FuncType : public Node
-{
-  FuncType(Pos p) : Node(Type::func_type, p) {}
-
-  // TODO: ins
-  // TODO: outs
 };
 
 struct Rvalue : public Node
@@ -92,16 +141,6 @@ struct VarDecl : public Node
   Ascii varType;
 };
 
-struct Initializer : public Node
-{
-private :
-  Darray<Shared<Node>> _exprs;
-
-public :
-  Initializer(Pos p) : Node(Type::initializer, p) {}
-  void addExpr(Shared<Node> expr) { _exprs.pushBack(expr); }
-};
-
 struct VarDeclStmnt : public Node
 {
   VarDeclStmnt(Pos p) : Node(Type::var_decl_stmnt, p) {}
@@ -110,43 +149,6 @@ struct VarDeclStmnt : public Node
   Shared<VarDecl> decl;
   // an empty initializer list means default construction
   Shared<Initializer> initializer;
-};
-
-struct FuncDefn : public Node
-{
-  FuncDefn(Pos p) : Node(Type::func_defn, p) {}
-
-  // empty name implies an anonymous function
-  Ascii name;
-  // null funcType is never valid
-  Shared<FuncType> funcType;
-  Shared<Block> block;
-};
-
-struct NumLit : public Node
-{
-  NumLit() = delete;
-
-  bool isNeg = false;
-  Ascii intPart;
-  Ascii numType;
-
-protected :
-  /// This constructor is protected because one is not supposed to construct a
-  /// number literal except through child classes.
-  NumLit(Type t, Pos p) : Node(t, p) {}
-};
-
-struct IntLit : public NumLit
-{
-  IntLit(Pos p) : NumLit(Type::int_lit, p) {}
-};
-
-struct FloatLit : public NumLit
-{
-  FloatLit(Pos p) : NumLit(Type::int_lit, p) {}
-
-  Ascii floatPart;
 };
 
 Shared<NumLit> parseNumberLit(Tokens& tokens, Shared<Namespace> nspace)
