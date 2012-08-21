@@ -41,16 +41,20 @@ private :
   const Kind _type;
 };
 
-struct AddExpr : public Node
+struct BinExpr : public Node
 {
-  AddExpr(Pos p, Shared<Node> l, Token::Type t) :
+  BinExpr(Pos p, Shared<Node> l, Token::Type t) :
       Node(Kind::add_expr, p), lhs(l), type(t) {}
 
   // lhs must not be null
   Shared<Node> lhs;
   // rhs must not be null
   Shared<Node> rhs;
-  // type must be Token::Type::plus or Token::Type::minus
+  // type must be one of: 
+  //     Token::Type::plus
+  //     Token::Type::minus
+  //     Token::Type::asterisk
+  //     Token::Type::fwd_slash
   Token::Type type;
 };
 

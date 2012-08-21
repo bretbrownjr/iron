@@ -236,11 +236,42 @@ Shared<Node> parsePrimaryExpr(Tokens& tokens, Shared<Namespace> nspace)
 
 Shared<Node> parseExpr(Tokens& tokens, Shared<Namespace> nspace);
 
-Shared<Node> parseAddExpr(Tokens& tokens, Shared<Namespace> nspace)
+Shared<Node> parseMultExpr(Tokens& tokens, Shared<Namespace> nspace)
 {
   auto remainder = tokens;
 
   auto lhs = parsePrimaryExpr(remainder, nspace);
+  if (!lhs) { return {}; }
+
+  const auto type = remainder.front().type;
+  if (type != Token::Type::asterisk &&
+      type != Token::Type::fwd_slash)
+  {
+    tokens = remainder;
+    return lhs;
+  }
+
+  // At this point it's safe to assume that this is an add operation
+  auto multExpr = std::make_shared<BinExpr>(remainder.front().pos, lhs, type);
+  remainder.pop(); // Remove the add operator
+
+  multExpr->rhs = parseExpr(remainder, nspace);
+  if (!multExpr->rhs)
+  {
+    errorln("Expected an expression following the operator at ",
+      multExpr->pos());
+    return {};
+  }
+
+  tokens = remainder;
+  return multExpr;
+}
+
+Shared<Node> parseAddExpr(Tokens& tokens, Shared<Namespace> nspace)
+{
+  auto remainder = tokens;
+
+  auto lhs = parseMultExpr(remainder, nspace);
   if (!lhs) { return {}; }
 
   const auto type = remainder.front().type;
@@ -252,10 +283,10 @@ Shared<Node> parseAddExpr(Tokens& tokens, Shared<Namespace> nspace)
   }
 
   // At this point it's safe to assume that this is an add operation
-  auto addExpr = std::make_shared<AddExpr>(remainder.front().pos, lhs, type);
+  auto addExpr = std::make_shared<BinExpr>(remainder.front().pos, lhs, type);
   remainder.pop(); // Remove the add operator
 
-  addExpr->rhs = parseExpr(remainder, nspace);
+  addExpr->rhs = parseMultExpr(remainder, nspace);
   if (!addExpr->rhs)
   {
     errorln("Expected an expression following the operator at ",
