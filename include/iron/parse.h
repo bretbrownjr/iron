@@ -326,6 +326,7 @@ Shared<Node> parseRetStmnt(Tokens& tokens, Shared<Namespace> nspace)
   {
     errorln("Expected a semicolon to close out a return statement at ",
       retStmnt->pos());
+    return {};
   }
   tokens.pop();
 
