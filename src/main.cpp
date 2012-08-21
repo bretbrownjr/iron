@@ -62,8 +62,6 @@ int main(int argc, char* argv[])
 {
   using File = iron::File;
 
-  int status = -1;
-
   if (getenv("INFO") != nullptr) { iron::infoOn = true; }
   if (getenv("SILENT") != nullptr) { iron::errorOn = false; }
 
@@ -81,6 +79,6 @@ int main(int argc, char* argv[])
   if (!ast) { return -1; }
 
   iron::println(stdout, "Thanks for using Iron!");
-  return status;
+  return 0;
 }
 
