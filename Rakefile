@@ -48,5 +48,19 @@ end
 desc 'Builds iron (default task)'
 task :build => bin
 
-task :default => :build
+examples = FileList['./examples/*']
+
+task :test => :build do
+  examples.each do |example|
+    command = "#{bin} #{example} 2>&1"
+    puts "== building #{example}"
+    output = `#{command}`
+    unless $?.exitstatus == 0
+      fail "failed to build #{example}"
+    end
+    # TODO: Run the compiled executable
+  end
+end
+
+task :default => :test
 
