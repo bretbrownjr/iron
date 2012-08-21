@@ -258,7 +258,7 @@ Shared<Node> parseAddExpr(Tokens& tokens, Shared<Namespace> nspace)
   addExpr->rhs = parseExpr(remainder, nspace);
   if (!addExpr->rhs)
   {
-    errorln("Expected an expression following the '+' at ",
+    errorln("Expected an expression following the operator at ",
       addExpr->pos());
     return {};
   }
