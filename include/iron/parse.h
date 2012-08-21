@@ -214,8 +214,35 @@ Shared<Lvalue> parseLvalue(Tokens& tokens, Shared<Namespace> nspace)
   return var;
 }
 
+Shared<Node> parseExpr(Tokens& tokens, Shared<Namespace> nspace);
+
+Shared<Node> parseParenExpr(Tokens& tokens, Shared<Namespace> nspace)
+{
+  if (tokens.front().type != Token::Type::left_paren) { return {}; }
+
+  auto remainder = tokens;
+  remainder.pop(); // pop the left parenthesis
+  auto expr = parseExpr(remainder, nspace);
+
+  if (remainder.front().type != Token::Type::right_paren)
+  {
+    errorln("Expected a ')' to match the '(' at ",
+      tokens.front().pos);
+    return {};
+  }
+  remainder.pop(); // pop the right parenthesis
+
+  tokens = remainder;
+  return expr;
+}
+
 Shared<Node> parsePrimaryExpr(Tokens& tokens, Shared<Namespace> nspace)
 {
+  {
+    auto expr = parseParenExpr(tokens, nspace);
+    if (expr) { return expr; }
+  }
+
   {
     auto expr = parseLit(tokens, nspace);
     if (expr) { return expr; }
@@ -233,8 +260,6 @@ Shared<Node> parsePrimaryExpr(Tokens& tokens, Shared<Namespace> nspace)
 
   return {};
 }
-
-Shared<Node> parseExpr(Tokens& tokens, Shared<Namespace> nspace);
 
 Shared<Node> parseMultExpr(Tokens& tokens, Shared<Namespace> nspace)
 {
