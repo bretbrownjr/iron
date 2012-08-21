@@ -15,7 +15,11 @@ The Iron language is a toy language geared towards systems development.
 - Algebraic datatypes
 
 ## Requirements ##
-The Iron build system is written in Rakefiles and Ruby.
+The Iron compiler uses:
+- Ruby 1.9.3
+- Rake 0.9.2.2
+- LLVM 2.8-6
+- g++ 4.7 with C++11 features
 
 ## Building ##
 
