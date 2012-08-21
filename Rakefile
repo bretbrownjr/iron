@@ -55,8 +55,9 @@ task :test => :build do
     command = "#{bin} #{example} 2>&1"
     puts "== building #{example}"
     output = `#{command}`
-    unless $?.exitstatus == 0
-      fail "failed to build #{example}"
+    code = $?.exitstatus
+    unless code == 0
+      fail "failed to build #{example}: exit code #{code}"
     end
     # TODO: Run the compiled executable
   end
