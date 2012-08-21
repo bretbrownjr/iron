@@ -214,7 +214,7 @@ Shared<Lvalue> parseLvalue(Tokens& tokens, Shared<Namespace> nspace)
   return var;
 }
 
-Shared<Node> parseExpr(Tokens& tokens, Shared<Namespace> nspace)
+Shared<Node> parsePrimaryExpr(Tokens& tokens, Shared<Namespace> nspace)
 {
   {
     auto expr = parseLit(tokens, nspace);
@@ -229,6 +229,49 @@ Shared<Node> parseExpr(Tokens& tokens, Shared<Namespace> nspace)
   {
     auto expr = parseLvalue(tokens, nspace);
     if (expr) { return expr; }
+  }
+
+  return {};
+}
+
+Shared<Node> parseExpr(Tokens& tokens, Shared<Namespace> nspace);
+
+Shared<Node> parseAddExpr(Tokens& tokens, Shared<Namespace> nspace)
+{
+  auto remainder = tokens;
+
+  auto lhs = parsePrimaryExpr(remainder, nspace);
+  if (!lhs) { return {}; }
+
+  const auto type = remainder.front().type;
+  if (type != Token::Type::plus &&
+      type != Token::Type::minus)
+  {
+    tokens = remainder;
+    return lhs;
+  }
+
+  // At this point it's safe to assume that this is an add operation
+  auto addExpr = std::make_shared<AddExpr>(remainder.front().pos, lhs, type);
+  remainder.pop(); // Remove the add operator
+
+  addExpr->rhs = parseExpr(remainder, nspace);
+  if (!addExpr->rhs)
+  {
+    errorln("Expected an expression following the '+' at ",
+      addExpr->pos());
+    return {};
+  }
+
+  tokens = remainder;
+  return addExpr;
+}
+
+Shared<Node> parseExpr(Tokens& tokens, Shared<Namespace> nspace)
+{
+  {
+    auto addExpr = parseAddExpr(tokens, nspace);
+    if (addExpr) { return addExpr; }
   }
 
   return {};

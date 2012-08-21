@@ -13,6 +13,7 @@ struct Node
 {
   enum class Kind
   {
+    add_expr,
     block,
     expr_stmnt,
     float_lit,
@@ -38,6 +39,19 @@ struct Node
 private :
   const Pos _pos;
   const Kind _type;
+};
+
+struct AddExpr : public Node
+{
+  AddExpr(Pos p, Shared<Node> l, Token::Type t) :
+      Node(Kind::add_expr, p), lhs(l), type(t) {}
+
+  // lhs must not be null
+  Shared<Node> lhs;
+  // rhs must not be null
+  Shared<Node> rhs;
+  // type must be Token::Type::plus or Token::Type::minus
+  Token::Type type;
 };
 
 struct Block : public Node
