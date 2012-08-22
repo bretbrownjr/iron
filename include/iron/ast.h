@@ -1,11 +1,20 @@
 #pragma once
 
+// standard includes
+#include <memory>
+
+// iron includes
+#include "iron/darray.h"
+#include "iron/token.h"
+
 namespace iron
 {
 
 namespace ast
 {
 
+template<typename Ttype>
+using Shared = std::shared_ptr<Ttype>;
 template<typename Ttype>
 using Weak = std::weak_ptr<Ttype>;
 
