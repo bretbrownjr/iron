@@ -2,6 +2,7 @@
 #include <cstdlib>
 
 // iron includes
+#include "iron/generate.h"
 #include "iron/lex.h"
 #include "iron/parse.h"
 
@@ -77,6 +78,8 @@ int main(int argc, char* argv[])
 
   auto ast = makeAst(file, tokens.all());
   if (!ast) { return -1; }
+
+  iron::generate(ast);
 
   iron::println(stdout, "Thanks for using Iron!");
   return 0;
