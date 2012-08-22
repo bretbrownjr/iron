@@ -9,7 +9,8 @@ CLOBBER.include BIN_DIR
 
 directory OBJ_DIR = 'obj'
 CLEAN.include OBJ_DIR
-OBJ_FLAGS=['c','-std=c++11','Wall','Werror','Wextra','pedantic','g','I./include']
+OBJ_FLAGS=['c','-std=c++11','Wall','Werror','Wextra','pedantic','g','I./include',
+  'D__STDC_LIMIT_MACROS','D__STDC_CONSTANT_MACROS']
 
 bin = File.join BIN_DIR,BIN_NAME
 objs = []
@@ -42,7 +43,9 @@ objs << decl_obj('main')
 objs << decl_obj('print')
 
 file bin => [objs, BIN_DIR].flatten do
-  sh "g++ -o#{bin} #{objs.join(' ')}"
+  llvm_flags = `llvm-config --cppflags --ldflags --libs core`.gsub("\n",'')
+  puts llvm_flags.inspect
+  sh "g++ -o#{bin} #{objs.join(' ')} #{llvm_flags}"
 end
 
 desc 'Builds iron (default task)'
@@ -57,6 +60,7 @@ task :test => :build do
     output = `#{command}`
     code = $?.exitstatus
     unless code == 0
+      puts command
       puts output
       fail "failed to build #{example}: exit code #{code}"
     end
