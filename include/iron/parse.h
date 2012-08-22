@@ -586,7 +586,8 @@ Shared<Node> parse(Tokens tokens)
       return {};
     }
 
-    // TODO: Add the decl to the namespace
+    // Add the decl to the namespace
+    global->decls.pushBack(decl);
 
     decl = parseDecl(tokens, global);
   } while (!tokens.isEmpty());

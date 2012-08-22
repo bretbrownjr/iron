@@ -40,14 +40,14 @@ struct Node
   };
 
   Node() = delete;
-  Node(Kind t, Pos p) : _pos(p), _type(t) {}
+  Node(Kind k, Pos p) : _pos(p), _kind(k) {}
 
+  Kind kind() const { return _kind; }
   Pos pos() const { return _pos; }
-  Kind type() const { return _type; }
 
 private :
   const Pos _pos;
-  const Kind _type;
+  const Kind _kind;
 };
 
 struct BinExpr : public Node
@@ -178,7 +178,7 @@ struct Namespace : public Node
 
   Weak<Node> parent;
   std::string name;
-  // TODO: Need a list of declarations
+  Darray<Shared<Node>> decls;
 };
 
 struct RetStmnt : public Node
