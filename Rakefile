@@ -51,11 +51,13 @@ end
 desc 'Builds iron (default task)'
 task :build => bin
 
-examples = FileList['./examples/*']
+examples = FileList['./examples/*.iron']
+directory './examples/bin'
 
-task :test => :build do
+task :test => [:build, './examples/bin'] do
   examples.each do |example|
-    command = "#{bin} #{example} 2>&1"
+    out = File.join('examples','bin',example.pathmap('%n').ext('out'))
+    command = "#{bin} #{example} -o#{out} 2>&1"
     puts "== building #{example}"
     output = `#{command}`
     code = $?.exitstatus
