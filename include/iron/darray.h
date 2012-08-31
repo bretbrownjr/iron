@@ -30,6 +30,7 @@ public :
 
   PtrRange<Ttype> all() { return {ptr(), ptr() + _count - 1}; }
   PtrRange<Ttype> all() const { return {ptr(), ptr() + _count - 1}; }
+  size_t count() const { return _count; }
 
   bool isEmpty() const { return _count == 0; }
 
