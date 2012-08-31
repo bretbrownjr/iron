@@ -526,7 +526,7 @@ Shared<FuncDefn> parseFuncDefn(Tokens& tokens, Shared<Namespace> nspace)
   }
 
   // At this point, it's safe to assume a function definition is here
-  auto funcDefn = std::make_shared<FuncDefn>(tokens.front().pos);
+  auto funcDefn = std::make_shared<FuncDefn>(tokens.front().pos, nspace);
   tokens.pop();
 
   // Look for the optional name of the function
@@ -548,6 +548,11 @@ Shared<FuncDefn> parseFuncDefn(Tokens& tokens, Shared<Namespace> nspace)
         colonPos);
       return {};
     }
+  }
+  else
+  {
+    // Use a () => () function type by default
+    funcDefn->funcType = std::make_shared<FuncType>(funcDefn->pos());
   }
 
   funcDefn->block = parseBlock(tokens, nspace);

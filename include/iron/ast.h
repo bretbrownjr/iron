@@ -2,6 +2,7 @@
 
 // standard includes
 #include <memory>
+#include <sstream>
 
 // iron includes
 #include "iron/darray.h"
@@ -123,25 +124,72 @@ struct FuncCall : public Node
   // TODO: arguments
 };
 
-struct FuncType;
-
-struct FuncDefn : public Node
+struct Namespace : public Node
 {
-  FuncDefn(Pos p) : Node(Kind::func_defn, p) {}
+  Namespace(Pos p) : Node(Kind::nspace, p) {}
 
-  // empty name implies an anonymous function
+  Weak<Node> parent;
+  std::string name;
+  Darray<Shared<Node>> decls;
+
+  std::string mangledName()
+  {
+    return name;
+  }
+};
+
+struct VarDecl : public Node
+{
+  VarDecl(Pos p, Ascii n) : Node(Kind::var_decl, p), name(n) {}
+
+  // an empty name is invalid
   Ascii name;
-  // null funcType is never valid
-  Shared<FuncType> funcType;
-  Shared<Block> block;
+  // an empty type implies type deduction
+  Shared<Type> type;
 };
 
 struct FuncType : public Type
 {
   FuncType(Pos p) : Type(Kind::func_type, p) {}
 
-  // TODO: ins
-  // TODO: outs
+  // empty ins implies no inputs
+  Darray<Shared<VarDecl>> ins;
+
+  // empty outs implies no outputs
+  Darray<Shared<VarDecl>> outs;
+
+  std::string mangledName()
+  {
+    std::stringstream ss;
+    ss << "P" << ins.count();
+    // TODO: For each in, attach the type info
+    ss << "R" << outs.count();
+    // TODO: For each out, attach the type info
+    return ss.str();
+  }
+};
+
+struct FuncDefn : public Node
+{
+  FuncDefn(Pos p, Shared<Namespace> n) : Node(Kind::func_defn, p), nspace(n) {}
+
+  // empty name implies an anonymous function
+  Ascii name;
+  // null funcType is never valid
+  Shared<FuncType> funcType;
+  Shared<Block> block;
+  // nspace should never be null
+  Weak<Namespace> nspace;
+
+  std::string mangledName()
+  {
+    std::stringstream ss;
+    ss << nspace.lock()->mangledName();
+    ss << "F" << name.size();
+    ss.write(&name[0], name.size());
+    ss << funcType->mangledName();
+    return ss.str();
+  }
 };
 
 struct Typename : public Type
@@ -172,31 +220,12 @@ struct Lvalue : public Node
   Ascii name;
 };
 
-struct Namespace : public Node
-{
-  Namespace(Pos p) : Node(Kind::nspace, p) {}
-
-  Weak<Node> parent;
-  std::string name;
-  Darray<Shared<Node>> decls;
-};
-
 struct RetStmnt : public Node
 {
   RetStmnt(Pos p) : Node(Kind::ret_stmnt, p) {}
 
   // A null expr implies a void return;
   Shared<Node> expr;
-};
-
-struct VarDecl : public Node
-{
-  VarDecl(Pos p, Ascii n) : Node(Kind::var_decl, p), name(n) {}
-
-  // an empty name is invalid
-  Ascii name;
-  // an empty type implies type deduction
-  Shared<Type> type;
 };
 
 struct VarDeclStmnt : public Node
