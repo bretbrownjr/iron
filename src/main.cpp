@@ -66,33 +66,40 @@ Shared<AstNode> makeAst(Shared<File> file, PtrRange<Token> tokens)
 
 struct Options
 {
-  Vector<String> files;
+  Vector<String> ins;
+  String out;
 
   static Options parse(int argc, char* argv[])
   {
-    int code = -1;
     opterr = 0;
-    const char options[] = "o:";
+    const char options[] = "-o:";
 
     Options opts;
     int flag = getopt(argc, argv, options);
-    while (code != -1)
+    while (flag != -1)
     {
       switch (flag)
       {
+        case 1 :
+        {
+          // No flag was given for this option. It is a file name.
+          opts.ins.emplace_back(optarg);
+          break;
+        }
+        case 'o' :
+        {
+          opts.out = String(optarg);
+          break;
+        }
         default :
         {
-          iron::errorln("Unhandled option: "_ascii, (char) flag);
+          iron::errorln("Unhandled option: ", (char) optopt);
           break;
         }
       }
       flag = getopt(argc, argv, options);
     }
 
-    for (int i=optind; i<argc; ++i)
-    {
-      opts.files.emplace_back(argv[i]);
-    }
     return std::move(opts);
   }
 };
@@ -106,25 +113,25 @@ int main(int argc, char* argv[])
 
   auto options = Options::parse(argc, argv);
 
-  if (options.files.empty())
+  if (options.ins.empty())
   {
-    iron::errorln("Expected a file name as the first argument to iron.");
+    iron::errorln("The Iron compiler needs a file name to operate on.");
     return -1;
   }
-  else if (options.files.size() > 1)
+  else if (options.ins.size() > 1)
   {
     iron::errorln("The Iron compiler can only handle one input file at this time.");
     return -1;
   }
 
-  auto file = std::make_shared<File>(options.files.front());
+  auto file = std::make_shared<File>(options.ins.front());
   auto tokens = tokenize(file);
   if (tokens.isEmpty()) { return -1; }
 
   auto ast = makeAst(file, tokens.all());
   if (!ast) { return -1; }
 
-  iron::generate(ast);
+  iron::generate(ast, options.out);
 
   iron::println(stdout, "Thanks for using Iron!");
   return 0;

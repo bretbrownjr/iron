@@ -27,6 +27,7 @@ using Global = llvm::GlobalValue;
 using Function = llvm::Function;
 using FunctionType = llvm::FunctionType;
 using Module = llvm::Module;
+using String = std::string;
 using Type = llvm::Type;
 
 using Node = ast::Node;
@@ -122,7 +123,7 @@ bool generate(Shared<Node> node, Builder& builder, Module* module)
   return result;
 }
 
-void generate(Shared<Node> parseTree)
+void generate(Shared<Node> parseTree, String outfile)
 {
   auto& context = llvm::getGlobalContext();
   Builder builder { context };
@@ -131,9 +132,14 @@ void generate(Shared<Node> parseTree)
   if (!genStatus) { return; }
 
   std::string msg;
-  llvm::raw_fd_ostream os{ "/tmp/out.ll", msg };
+  llvm::raw_fd_ostream os{ outfile.c_str(), msg };
   module->print(os, nullptr);
   if (!msg.empty()) { errorln(msg.c_str()); }
+}
+
+void generate(Shared<Node> parseTree)
+{
+  generate(parseTree, "/tmp/a.out");
 }
 
 } // namespace iron
