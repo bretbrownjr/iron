@@ -1,5 +1,7 @@
 // standard includes
 #include <cstdlib>
+#include <unistd.h>
+#include <vector>
 
 // iron includes
 #include "iron/generate.h"
@@ -14,6 +16,9 @@ using Token = iron::Token;
 using AstNode = iron::ast::Node;
 template<typename Ttype>
 using PtrRange = iron::PtrRange<Ttype>;
+using String = std::string;
+template<typename Ttype>
+using Vector = std::vector<Ttype>;
 
 auto tokenize(Shared<File> file) -> decltype(iron::lex(file))
 {
@@ -59,6 +64,39 @@ Shared<AstNode> makeAst(Shared<File> file, PtrRange<Token> tokens)
   return ast;
 }
 
+struct Options
+{
+  Vector<String> files;
+
+  static Options parse(int argc, char* argv[])
+  {
+    int code = -1;
+    opterr = 0;
+    const char options[] = "o:";
+
+    Options opts;
+    int flag = getopt(argc, argv, options);
+    while (code != -1)
+    {
+      switch (flag)
+      {
+        default :
+        {
+          iron::errorln("Unhandled option: "_ascii, (char) flag);
+          break;
+        }
+      }
+      flag = getopt(argc, argv, options);
+    }
+
+    for (int i=optind; i<argc; ++i)
+    {
+      opts.files.emplace_back(argv[i]);
+    }
+    return std::move(opts);
+  }
+};
+
 int main(int argc, char* argv[])
 {
   using File = iron::File;
@@ -66,13 +104,20 @@ int main(int argc, char* argv[])
   if (getenv("INFO") != nullptr) { iron::infoOn = true; }
   if (getenv("SILENT") != nullptr) { iron::errorOn = false; }
 
-  if (argc < 2)
+  auto options = Options::parse(argc, argv);
+
+  if (options.files.empty())
   {
     iron::errorln("Expected a file name as the first argument to iron.");
     return -1;
   }
+  else if (options.files.size() > 1)
+  {
+    iron::errorln("The Iron compiler can only handle one input file at this time.");
+    return -1;
+  }
 
-  auto file = std::make_shared<File>(File{argv[1]});
+  auto file = std::make_shared<File>(options.files.front());
   auto tokens = tokenize(file);
   if (tokens.isEmpty()) { return -1; }
 
