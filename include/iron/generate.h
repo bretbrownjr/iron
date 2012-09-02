@@ -125,21 +125,54 @@ bool generate(Shared<Node> node, Builder& builder, Module* module)
 
 void generate(Shared<Node> parseTree, String outfile)
 {
+  if (outfile.empty())
+  {
+    errorln("Cannot compile into a nameless output file.");
+    return;
+  }
+
   auto& context = llvm::getGlobalContext();
   Builder builder { context };
   auto module = new Module("Iron Context", llvm::getGlobalContext());
   const bool genStatus = generate(parseTree, builder, module);
   if (!genStatus) { return; }
 
-  std::string msg;
-  llvm::raw_fd_ostream os{ outfile.c_str(), msg };
-  module->print(os, nullptr);
-  if (!msg.empty()) { errorln(msg.c_str()); }
+  // Output the LLVM IR code to a temporary file
+  String llFile = "/tmp/a.ll";
+  {
+    String msg;
+    llvm::raw_fd_ostream os{ llFile.c_str(), msg };
+    module->print(os, nullptr);
+    if (!msg.empty()) { errorln(msg.c_str()); return; }
+  }
+
+  // Compile the LLVM IR code to native assembly
+  String sFile = "/tmp/a.s";
+  {
+    String cmd = "llc -o=" + sFile + " " + llFile;
+    auto code = system(cmd.c_str());
+    if (code != 0)
+    {
+      errorln("Error converting ", llFile.c_str(), " to ", sFile.c_str());
+      return;
+    }
+  }
+
+  // Compile the native assembly into an executable
+  {
+    String cmd = "gcc " + sFile + " -o" + outfile;
+    auto code = system(cmd.c_str());
+    if (code != 0)
+    {
+      errorln("Error converting ", sFile.c_str(), " to ", outfile.c_str());
+      return;
+    }
+  }
 }
 
 void generate(Shared<Node> parseTree)
 {
-  generate(parseTree, "/tmp/a.out");
+  generate(parseTree, "./a.out");
 }
 
 } // namespace iron
