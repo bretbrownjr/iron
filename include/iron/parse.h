@@ -581,10 +581,9 @@ Shared<Node> parse(Tokens tokens)
   auto global = std::make_shared<Namespace>(Pos{0,0});
   global->name = "_";
 
-  auto decl = parseDecl(tokens, global);
-
-  do
+  while (!tokens.isEmpty())
   {
+    auto decl = parseDecl(tokens, global);
     if (!decl)
     {
       errorln("Expected a declaration at ", tokens.front().pos);
@@ -593,9 +592,7 @@ Shared<Node> parse(Tokens tokens)
 
     // Add the decl to the namespace
     global->decls.pushBack(decl);
-
-    decl = parseDecl(tokens, global);
-  } while (!tokens.isEmpty());
+  }
 
   return global;
 }
