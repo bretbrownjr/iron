@@ -226,6 +226,8 @@ struct RetStmnt : public Node
 
   // A null expr implies a void return;
   Shared<Node> expr;
+
+  bool isVoid() const { return false == static_cast<bool>(expr); }
 };
 
 struct VarDeclStmnt : public Node
