@@ -37,6 +37,7 @@ public :
   const Ttype& operator[](size_t index) const { return at(index); }
 
   constexpr Ttype& at(size_t size) { return *(_begin+size); }
+  Ttype& back() { return *_end; }
   constexpr PtrRange<Ttype> first(size_t size) { return {_begin, _begin + size - 1}; }
   Ttype& front() { return *_begin; }
   constexpr bool isEmpty() { return _begin > _end; }
