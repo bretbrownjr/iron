@@ -29,35 +29,49 @@ using FunctionType = llvm::FunctionType;
 using Module = llvm::Module;
 using String = std::string;
 using Type = llvm::Type;
-
-using Node = ast::Node;
 template<typename Ttype>
 using Shared = std::shared_ptr<Ttype>;
+using Value = llvm::Value;
 
-bool generate(Shared<Node> node, Builder& builder, Module* module);
+bool generate(Shared<ast::Node> node, Builder& builder, Value*& value);
+bool generate(Shared<ast::Node> node, Builder& builder, Module* module);
 
-bool generate(Shared<ast::Block> block, Function* fn, Builder& builder, Module* module)
+bool generate(Shared<ast::Block> block, Function* fn, Builder& builder)
 {
-  (void) block; (void) module;
+  (void) fn;
 
-  auto bb = BasicBlock::Create(llvm::getGlobalContext(), "body", fn);
-  builder.SetInsertPoint(bb);
+  Value* value = nullptr;
+  if (block->isEmpty())
+  {
+    // Finish off the function.
+    value = builder.CreateRetVoid();
+  }
+  else
+  {
+    for (auto stmnts = block->stmnts(); !stmnts.isEmpty(); stmnts.pop())
+    {
+      if (!generate(stmnts.front(), builder, value)) { return false; }
+    }
+  }
 
-  // Finish off the function.
-  builder.CreateRetVoid();
-
-  // Validate the generated code, checking for consistency.
-  llvm::verifyFunction(*fn);
-
-  return true;
+  return value != nullptr;
 }
 
-bool generate(Shared<ast::FuncDefn> funcDefn, Builder& builder, Module* module)
+bool generate(Shared<ast::FuncDefn> funcDefn, Module* module)
 {
   auto& context = llvm::getGlobalContext();
-  auto llvmReturnType = Type::getVoidTy(context);
+  const llvm::Type* llvmRetType = nullptr;
+  if (funcDefn->funcType->outs.isEmpty())
+  {
+    llvmRetType = Type::getVoidTy(context);
+  }
+  else
+  {
+    // TODO: This needs to be more sophisticated
+    llvmRetType = llvm::IntegerType::get(context, 32);
+  }
   static const bool IS_VARARG = false;
-  auto llvmFuncType = FunctionType::get(llvmReturnType, IS_VARARG);
+  auto llvmFuncType = FunctionType::get(llvmRetType, IS_VARARG);
   std::string name { &funcDefn->name.front(), funcDefn->name.size() };
   // TODO: Instead of doing this, should an attribute be applied to the function
   //   name? Perhaps nomangle or extern?
@@ -69,6 +83,8 @@ bool generate(Shared<ast::FuncDefn> funcDefn, Builder& builder, Module* module)
   }
   auto llvmFunc = Function::Create(llvmFuncType, Global::ExternalLinkage, name, module);
 
+  // LLVM will rename the function if that name is already taken. This is not desireable.
+  // Instead, error out.
   if (llvmFunc->getName() != name)
   {
     errorln("Redefinition of ", name.c_str());
@@ -77,7 +93,19 @@ bool generate(Shared<ast::FuncDefn> funcDefn, Builder& builder, Module* module)
 
   // TODO: Add names for all the arguments
 
-  return generate(funcDefn->block, llvmFunc, builder, module);
+  auto bb = BasicBlock::Create(llvm::getGlobalContext(), name + "__body", llvmFunc);
+  Builder blockBuilder { bb };
+
+  if (!generate(funcDefn->block, llvmFunc, blockBuilder))
+  {
+    errorln("Failed to generate the block for ", name);
+    return false;
+  }
+
+  // Validate the generated code, checking for consistency.
+  llvm::verifyFunction(*llvmFunc);
+
+  return true;
 }
 
 bool generate(Shared<ast::Namespace> nspace, Builder& builder, Module* module)
@@ -95,7 +123,7 @@ errorln("Failed to generate a declaration within namespace ", nspace->name.c_str
   return true;
 }
 
-bool generate(Shared<Node> node, Builder& builder, Module* module)
+bool generate(Shared<ast::Node> node, Builder& builder, Module* module)
 {
   bool result = false;
 
@@ -104,7 +132,7 @@ bool generate(Shared<Node> node, Builder& builder, Module* module)
     case ast::Node::Kind::func_defn :
     {
       auto funcDefn = std::static_pointer_cast<ast::FuncDefn>(node);
-      result = generate(funcDefn, builder, module);
+      result = generate(funcDefn, module);
       break;
     }
     case ast::Node::Kind::nspace :
@@ -115,7 +143,8 @@ bool generate(Shared<Node> node, Builder& builder, Module* module)
     }
     default :
     {
-      errorln("Unhandled node type ", static_cast<size_t>(node->kind()));
+      // Unhandled node type
+      assert(false);
       break;
     }
   }
@@ -123,7 +152,70 @@ bool generate(Shared<Node> node, Builder& builder, Module* module)
   return result;
 }
 
-void generate(Shared<Node> parseTree, String outfile)
+bool generate(Shared<ast::IntLit> intLit, Value*& value)
+{
+  auto& context = llvm::getGlobalContext();
+  // TODO: Adjust the integer literal type based on the number of bits needed
+  //   to represent the literal.
+  auto intType = llvm::IntegerType::get(context, 32);
+  // TODO: Need an out-of-the box way to convert strings to uint64_ts
+  const char* begin = &intLit->intPart.front();
+  char* end = const_cast<char*>(begin);
+  // TODO: This only works for base 10 numbers
+  uint64_t intValue = strtoull(begin, &end, 10);
+  value = llvm::ConstantInt::get(intType, intValue, !intLit->isNeg);
+  return value != nullptr;
+}
+
+bool generate(Shared<ast::RetStmnt> retStmnt, Builder& builder, Value*& value)
+{
+  if (retStmnt->isVoid())
+  {
+    value = builder.CreateRetVoid();
+  }
+  else
+  {
+    Value* exprValue = nullptr;
+    if (!generate(retStmnt->expr, builder, exprValue))
+    {
+      return false;
+    }
+    value = builder.CreateRet(exprValue);
+  }
+  return value != nullptr;
+}
+
+bool generate(Shared<ast::Node> node, Builder& builder, Value*& value)
+{
+  bool result = false;
+
+  switch (node->kind())
+  {
+    case ast::Node::Kind::int_lit :
+    {
+      auto intLit = std::static_pointer_cast<ast::IntLit>(node);
+      result = generate(intLit, value);
+      break;
+    }
+    case ast::Node::Kind::ret_stmnt :
+    {
+      auto retStmnt = std::static_pointer_cast<ast::RetStmnt>(node);
+      result = generate(retStmnt, builder, value);
+      break;
+    }
+    default :
+    {
+fprintf(stdout, "kind = %lu\n", (size_t) node->kind());
+      // Unhandled node type
+      assert(false);
+      break;
+    }
+  }
+
+  return result;
+}
+
+void generate(Shared<ast::Node> parseTree, String outfile)
 {
   if (outfile.empty())
   {
@@ -170,7 +262,7 @@ void generate(Shared<Node> parseTree, String outfile)
   }
 }
 
-void generate(Shared<Node> parseTree)
+void generate(Shared<ast::Node> parseTree)
 {
   generate(parseTree, "./a.out");
 }
