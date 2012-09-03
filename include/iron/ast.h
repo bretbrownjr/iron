@@ -76,6 +76,9 @@ private :
 public :
   Block(Pos p) : Node(Kind::block, p) {}
   void addStmnt(Shared<Node> stmnt) { _stmnts.pushBack(stmnt); }
+  bool isEmpty() const { return _stmnts.isEmpty(); }
+  auto stmnts() const -> decltype(_stmnts.all()) { return _stmnts.all(); }
+  auto stmnts() -> decltype(_stmnts.all()) { return _stmnts.all(); }
 };
 
 struct ExprStmnt : public Node
