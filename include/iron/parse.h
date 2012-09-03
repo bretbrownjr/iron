@@ -84,6 +84,7 @@ Shared<FuncType> parseFuncType(Tokens& tokens, Shared<Namespace> nspace)
           "list at ", remainder.front().pos);
       return {};
     }
+    funcType->outs.pushBack(varDecl);
 
     expectComma = true;
   }
