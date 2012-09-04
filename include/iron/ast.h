@@ -187,11 +187,14 @@ struct FuncDefn : public Node
   std::string mangledName()
   {
     std::stringstream ss;
+#if 0
     ss << nspace.lock()->mangledName();
     ss << "F" << name.size();
     ss.write(&name[0], name.size());
     ss << funcType->mangledName();
     return ss.str();
+#endif
+    return {&name.front(), name.size()};
   }
 };
 
