@@ -23,7 +23,7 @@ struct Node
 {
   enum class Kind
   {
-    add_expr,
+    binary_expr,
     block,
     expr_stmnt,
     float_lit,
@@ -54,7 +54,7 @@ private :
 struct BinExpr : public Node
 {
   BinExpr(Pos p, Shared<Node> l, Token::Type t) :
-      Node(Kind::add_expr, p), lhs(l), type(t) {}
+      Node(Kind::binary_expr, p), lhs(l), type(t) {}
 
   // lhs must not be null
   Shared<Node> lhs;
@@ -188,6 +188,7 @@ struct FuncDefn : public Node
   {
     std::stringstream ss;
 #if 0
+// TODO: When mangling works, use this logic to mangle a function name
     ss << nspace.lock()->mangledName();
     ss << "F" << name.size();
     ss.write(&name[0], name.size());
