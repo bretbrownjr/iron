@@ -152,6 +152,39 @@ bool generate(Shared<ast::Node> node, Builder& builder, Module* module)
   return result;
 }
 
+bool generate(Shared<ast::BinExpr> binaryExpr, Builder& builder, Module* module,
+    Value*& value)
+{
+  (void) binaryExpr; (void) builder; (void) module; (void) value;
+  // Evaluate the lhs
+  llvm::Value* lhsValue = nullptr;
+  if (!generate(binaryExpr->lhs, builder, module, lhsValue)) { return false; }
+
+  // Evaluate the rhs
+  llvm::Value* rhsValue = nullptr;
+  if (!generate(binaryExpr->rhs, builder, module, rhsValue)) { return false; }
+
+  // Perform the binary operation
+  switch (binaryExpr->type)
+  {
+    case Token::Type::fwd_slash : // division
+    {
+      // TODO: Need to figure out when to use exact or not.
+      // TODO: Need to call SDiv or UDiv depending on parameters
+      // TODO: Will need to be a function call when applicable
+      value = builder.CreateExactSDiv(lhsValue, rhsValue);
+      break;
+    }
+    default :
+    {
+fprintf(stderr, "Generation for binary operator %lu is not implemented yet.\n",
+  (size_t) binaryExpr->type);
+      assert(false);
+    }
+  }
+  return value != nullptr;
+}
+
 bool generate(Shared<ast::FuncCall> funcCall, Builder& builder, Module* module,
     Value*& value)
 {
@@ -209,6 +242,12 @@ bool generate(Shared<ast::Node> node, Builder& builder, Module* module, Value*& 
 
   switch (node->kind())
   {
+    case ast::Node::Kind::binary_expr :
+    {
+      auto binaryExpr = std::static_pointer_cast<ast::BinExpr>(node);
+      result = generate(binaryExpr, builder, module, value);
+      break;
+    }
     case ast::Node::Kind::func_call :
     {
       auto funcCall = std::static_pointer_cast<ast::FuncCall>(node);
