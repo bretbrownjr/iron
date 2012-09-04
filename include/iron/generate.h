@@ -33,10 +33,10 @@ template<typename Ttype>
 using Shared = std::shared_ptr<Ttype>;
 using Value = llvm::Value;
 
-bool generate(Shared<ast::Node> node, Builder& builder, Value*& value);
+bool generate(Shared<ast::Node> node, Builder& builder, Module* module, Value*& value);
 bool generate(Shared<ast::Node> node, Builder& builder, Module* module);
 
-bool generate(Shared<ast::Block> block, Function* fn, Builder& builder)
+bool generate(Shared<ast::Block> block, Function* fn, Builder& builder, Module* module)
 {
   (void) fn;
 
@@ -50,7 +50,7 @@ bool generate(Shared<ast::Block> block, Function* fn, Builder& builder)
   {
     for (auto stmnts = block->stmnts(); !stmnts.isEmpty(); stmnts.pop())
     {
-      if (!generate(stmnts.front(), builder, value)) { return false; }
+      if (!generate(stmnts.front(), builder, module, value)) { return false; }
     }
   }
 
@@ -96,7 +96,7 @@ bool generate(Shared<ast::FuncDefn> funcDefn, Module* module)
   auto bb = BasicBlock::Create(llvm::getGlobalContext(), name + "__body", llvmFunc);
   Builder blockBuilder { bb };
 
-  if (!generate(funcDefn->block, llvmFunc, blockBuilder))
+  if (!generate(funcDefn->block, llvmFunc, blockBuilder, module))
   {
     errorln("Failed to generate the block for ", name);
     return false;
@@ -152,6 +152,23 @@ bool generate(Shared<ast::Node> node, Builder& builder, Module* module)
   return result;
 }
 
+bool generate(Shared<ast::FuncCall> funcCall, Builder& builder, Module* module,
+    Value*& value)
+{
+  (void) funcCall; (void) value; (void) builder;
+  String name { &funcCall->name.front(), funcCall->name.size() };
+  // TODO: Need to find a mangled name that matches the name and type of the
+  //   function call.
+  auto func = module->getFunction(name);
+  if (func == nullptr)
+  {
+    errorln("At ", funcCall->pos(), " -- Could not find a function named ",
+      name);
+  }
+  value = builder.CreateCall(func);
+  return value != nullptr;
+}
+
 bool generate(Shared<ast::IntLit> intLit, Value*& value)
 {
   auto& context = llvm::getGlobalContext();
@@ -167,7 +184,8 @@ bool generate(Shared<ast::IntLit> intLit, Value*& value)
   return value != nullptr;
 }
 
-bool generate(Shared<ast::RetStmnt> retStmnt, Builder& builder, Value*& value)
+bool generate(Shared<ast::RetStmnt> retStmnt, Builder& builder, Module* module,
+    Value*& value)
 {
   if (retStmnt->isVoid())
   {
@@ -176,7 +194,7 @@ bool generate(Shared<ast::RetStmnt> retStmnt, Builder& builder, Value*& value)
   else
   {
     Value* exprValue = nullptr;
-    if (!generate(retStmnt->expr, builder, exprValue))
+    if (!generate(retStmnt->expr, builder, module, exprValue))
     {
       return false;
     }
@@ -185,12 +203,18 @@ bool generate(Shared<ast::RetStmnt> retStmnt, Builder& builder, Value*& value)
   return value != nullptr;
 }
 
-bool generate(Shared<ast::Node> node, Builder& builder, Value*& value)
+bool generate(Shared<ast::Node> node, Builder& builder, Module* module, Value*& value)
 {
   bool result = false;
 
   switch (node->kind())
   {
+    case ast::Node::Kind::func_call :
+    {
+      auto funcCall = std::static_pointer_cast<ast::FuncCall>(node);
+      result = generate(funcCall, builder, module, value);
+      break;
+    }
     case ast::Node::Kind::int_lit :
     {
       auto intLit = std::static_pointer_cast<ast::IntLit>(node);
@@ -200,7 +224,7 @@ bool generate(Shared<ast::Node> node, Builder& builder, Value*& value)
     case ast::Node::Kind::ret_stmnt :
     {
       auto retStmnt = std::static_pointer_cast<ast::RetStmnt>(node);
-      result = generate(retStmnt, builder, value);
+      result = generate(retStmnt, builder, module, value);
       break;
     }
     default :
