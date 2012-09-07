@@ -197,6 +197,7 @@ bool generate(Shared<ast::FuncCall> funcCall, Builder& builder, Module* module,
   {
     errorln("At ", funcCall->pos(), " -- Could not find a function named ",
       name.c_str());
+    return false;
   }
   value = builder.CreateCall(func);
   return value != nullptr;
@@ -302,14 +303,14 @@ void generate(Shared<ast::Node> parseTree, String outfile)
   if (outfile.empty())
   {
     errorln("Cannot compile into a nameless output file.");
-    return;
+    assert(false);
   }
 
   auto& context = llvm::getGlobalContext();
   Builder builder { context };
   auto module = new Module("Iron Context", llvm::getGlobalContext());
   const bool genStatus = generate(parseTree, builder, module);
-  if (!genStatus) { return; }
+  if (!genStatus) { assert(false); }
 
   // Output the LLVM IR code to a temporary file
   String llFile = "/tmp/a.ll";
@@ -317,7 +318,7 @@ void generate(Shared<ast::Node> parseTree, String outfile)
     String msg;
     llvm::raw_fd_ostream os{ llFile.c_str(), msg };
     module->print(os, nullptr);
-    if (!msg.empty()) { errorln(msg.c_str()); return; }
+    if (!msg.empty()) { errorln(msg.c_str()); assert(false); }
   }
 
   // Compile the LLVM IR code to native assembly
@@ -328,7 +329,7 @@ void generate(Shared<ast::Node> parseTree, String outfile)
     if (code != 0)
     {
       errorln("Error converting ", llFile.c_str(), " to ", sFile.c_str());
-      return;
+      assert(false);
     }
   }
 
@@ -339,7 +340,7 @@ void generate(Shared<ast::Node> parseTree, String outfile)
     if (code != 0)
     {
       errorln("Error converting ", sFile.c_str(), " to ", outfile.c_str());
-      return;
+      assert(false);
     }
   }
 }

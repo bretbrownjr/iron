@@ -31,16 +31,7 @@ inline int print(FILE* file, const char* c_str)
   return 0;
 }
 
-inline int print(FILE* file, std::string&& str)
-{
-  if (0 < fprintf(file, "%s", str.c_str()))
-  {
-    return errno;
-  }
-  return 0;
-}
-
-inline int print(FILE* file, const std::string& str)
+inline int print(FILE* file, std::string str)
 {
   if (0 < fprintf(file, "%s", str.c_str()))
   {
