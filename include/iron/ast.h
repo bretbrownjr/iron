@@ -27,14 +27,14 @@ struct Node
     block,
     expr_stmnt,
     float_lit,
-    int_lit,
-    initializer,
     func_call,
     func_defn,
     func_type,
+    int_lit,
+    initializer,
+    lvalue,
     nspace, // namespace is a reserved word
     ret_stmnt,
-    rvalue,
     tname, // typename is a reserved word
     var_decl,
     var_decl_stmnt
@@ -212,6 +212,7 @@ private :
 public :
   Initializer(Pos p) : Node(Kind::initializer, p) {}
   void addExpr(Shared<Node> expr) { _exprs.pushBack(expr); }
+  PtrRange<Shared<Node>> exprs() { return _exprs.all(); }
 };
 
 struct IntLit : public NumLit
@@ -221,7 +222,7 @@ struct IntLit : public NumLit
 
 struct Lvalue : public Node
 {
-  Lvalue(Pos p, Ascii n) : Node(Kind::rvalue, p), name(n) {}
+  Lvalue(Pos p, Ascii n) : Node(Kind::lvalue, p), name(n) {}
 
   // an empty name is invalid
   Ascii name;

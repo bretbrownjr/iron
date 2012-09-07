@@ -196,7 +196,7 @@ bool generate(Shared<ast::FuncCall> funcCall, Builder& builder, Module* module,
   if (func == nullptr)
   {
     errorln("At ", funcCall->pos(), " -- Could not find a function named ",
-      name);
+      name.c_str());
   }
   value = builder.CreateCall(func);
   return value != nullptr;
@@ -236,6 +236,19 @@ bool generate(Shared<ast::RetStmnt> retStmnt, Builder& builder, Module* module,
   return value != nullptr;
 }
 
+bool generate(Shared<ast::VarDeclStmnt> varDeclStmnt, Builder& builder, Module* module,
+    Value*& value)
+{
+  (void) builder;
+  String name { &varDeclStmnt->decl->name.front(), varDeclStmnt->decl->name.size() };
+  // TODO: This code is function pointer specific
+  auto arg = varDeclStmnt->initializer->exprs().front();
+  auto lvalue = std::static_pointer_cast<ast::Lvalue>(arg);
+  String fnName { &lvalue->name.front(), lvalue->name.size() };
+  value = module->getFunction(fnName);
+  return value != nullptr;
+}
+
 bool generate(Shared<ast::Node> node, Builder& builder, Module* module, Value*& value)
 {
   bool result = false;
@@ -264,6 +277,12 @@ bool generate(Shared<ast::Node> node, Builder& builder, Module* module, Value*& 
     {
       auto retStmnt = std::static_pointer_cast<ast::RetStmnt>(node);
       result = generate(retStmnt, builder, module, value);
+      break;
+    }
+    case ast::Node::Kind::var_decl_stmnt :
+    {
+      auto varDecl = std::static_pointer_cast<ast::VarDeclStmnt>(node);
+      result = generate(varDecl, builder, module, value);
       break;
     }
     default :
