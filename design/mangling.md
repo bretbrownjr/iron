@@ -13,3 +13,13 @@ Every sufficiently complex program needs the ability to differentiate between
 similar parts of a program. Take, for example, printing character strings to
 the standard output stream.
 
+In C:
+```c
+#include <stdio.h>
+int main(int argc, char* argv[])
+{
+  printf("Hello, world!\n");
+  return 0;
+}
+```
+
