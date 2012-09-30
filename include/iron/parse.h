@@ -533,7 +533,12 @@ Shared<FuncDefn> parseFuncDefn(Tokens& tokens, Shared<Namespace> nspace)
   // Look for the optional name of the function
   if (tokens.front().type == Token::Type::identifier)
   {
-    funcDefn->name = tokens.front().value;
+    std::string name
+    {
+      &tokens.front().value.front(),
+      tokens.front().value.size()
+    };
+    funcDefn->name = name;
     tokens.pop();
   }
 

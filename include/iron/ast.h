@@ -127,18 +127,29 @@ struct FuncCall : public Node
   // TODO: arguments
 };
 
-struct Namespace : public Node
+struct Scope : public Node
 {
-  Namespace(Pos p) : Node(Kind::nspace, p) {}
+  Scope(Kind k, Pos p) : Scope(k, p, nullptr) {}
+  Scope(Kind k, Pos p, Shared<Scope> prnt) : Node(k, p), parent(prnt) {}
 
+  // when parent is null, this is the global scope
   Weak<Node> parent;
+  // should never be empty
   std::string name;
-  Darray<Shared<Node>> decls;
 
   std::string mangledName()
   {
     return name;
   }
+};
+
+struct Namespace : public Scope
+{
+  // makes a global namespace
+  Namespace(Pos p) : Namespace(p, nullptr) {}
+  Namespace(Pos p, Shared<Scope> prnt) : Scope(Kind::nspace, p, prnt) {}
+
+  Darray<Shared<Node>> decls;
 };
 
 struct VarDecl : public Node
@@ -172,17 +183,13 @@ struct FuncType : public Type
   }
 };
 
-struct FuncDefn : public Node
+struct FuncDefn : public Scope
 {
-  FuncDefn(Pos p, Shared<Namespace> n) : Node(Kind::func_defn, p), nspace(n) {}
+  FuncDefn(Pos p, Shared<Scope> n) : Scope(Kind::func_defn, p, n) {}
 
-  // empty name implies an anonymous function
-  Ascii name;
   // null funcType is never valid
   Shared<FuncType> funcType;
   Shared<Block> block;
-  // nspace should never be null
-  Weak<Namespace> nspace;
 
   std::string mangledName()
   {
